@@ -1,0 +1,592 @@
+
+--------------------------------------------------------------------------------------------------------------------------------
+EXPLICACIÓN DEL FLUJO ORDENADO PASO A PASO PARA CREAR UNA ENTIDAD/TABLA CON ESTA ARQUITECTURA
+--------------------------------------------------------------------------------------------------------------------------------
+ARQUITECTURA: Patrón Repositorio y capas
+
+Este proceso va desde la capa de Persistencia (más interna) hasta la capa de Presentación (Controllers) (más externa) 
+y, finalmente, el registro de dependencias (Program.cs).
+
+EJEMPLO: Creacion de la entidad/tabla Country
+
+1. Capa de Modelos (Domain)
+
+Archivo: Models/Country.cs 
+Acción: Es el modelo Country que representa la tabla en la base de datos.
+
+namespace ApiComponents.Models
+{
+    public class Country
+    {
+        public int id { get; set; }
+        [Required] public string description { get; set; }
+    }
+}
+
+2. Capa de Persistencia (Persistence/Configurations) (Fluent API)
+
+Archivo: Persistence/Configurations/CountryConfiguration.cs 
+Acción: Aplica el mapeo avanzado y las restricciones del modelo.
+
+using ApiComponents.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace ApiComponents.Persistence.Configurations
+{
+    public class CountryConfiguration : IEntityTypeConfiguration<Country>
+    {
+        public void Configure(EntityTypeBuilder<Country> builder)
+        {
+            // Restricción de unicidad para el campo description
+            builder.HasIndex(c => c.description).IsUnique();
+        }
+    }
+}
+
+3. En Persistence/Context/AppDbContext.cs, agregar el DbSet para Country:
+   DbSet: Convierte tu clase de C# (Country) en una tabla de la base de datos 
+   y te da acceso a las herramientas para manipular los datos de esa tabla.
+   Ej: public DbSet<Country> Country { get; set; } 
+
+using ApiComponents.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace ApiComponents.Persistence.Context
+{
+    public class AppDbContext : DbContext
+    {
+        // 1. **CONSTRUCTOR VACÍO AGREGADO** (Necesario para herramientas de diseño/migraciones)
+        public AppDbContext()
+        {
+        }
+
+        // Constructor para inicalizar la base de datos
+        public AppDbContext(DbContextOptions<AppDbContext> options): base(options)
+        {
+            
+        }
+
+        public DbSet<Country> Country { get; set; } // Agregado DbSet para la nueva entidad Country
+
+        // 2. OnModelCreating: Carga todas las configuraciones (ej: descripcion unica, id único) de cada tabla
+        //    configurado en carpeta Persistence/Configurations
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Esta línea le dice a EF Core que aplique todas las clases
+            // que implementan IEntityTypeConfiguration<T> en este assembly.
+            // Esto importa automáticamente CountryConfiguration y todas las que tengamos.
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        }
+    }
+}
+
+4. Capa de Repositorios (Persistence/Repositories)
+Esta capa aísla la lógica de EF Core.
+En Resumen: El Repositorio es la capa que se encarga de hablar con Entity Framework Core 
+para traducir las solicitudes de negocio (ej. "dame todos los países") a comandos de la base de datos (ej. SELECT * FROM Country).
+
+A. Interfaz del Repositorio
+Archivo: Persistence/Repositories/ICountryRepository.cs 
+Acción: Define el contrato de lo que el Repositorio puede hacer (generalmente el CRUD).
+
+using ApiComponents.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace ApiComponents.Persistence.Repositories
+{
+    public interface ICountryRepository
+    {
+        Task<IEnumerable<Country>> GetAllAsync();
+        Task<Country> GetByIdAsync(int id);
+        Task AddAsync(Country country);
+        Task UpdateAsync(Country country);
+        Task DeleteAsync(int id);
+        Task<bool> ExistsAsync(int id);
+        Task<bool> ExistsByDescriptionAsync(string description);
+    }
+}
+
+B. Implementación del Repositorio
+
+Archivo: Persistence/Repositories/CountryRepository.cs 
+Acción: Implementa el contrato ICountryRepository.cs usando el AppDbContext (EF Core).
+Es el único encargado de manejar y ejecutar las operaciones de persistencia (CRUD): 
+guardar, actualizar, eliminar y consultar los datos en la base de datos, aislando esta lógica del resto de la aplicación.
+
+using ApiComponents.Models;
+using ApiComponents.Persistence.Context;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq; // Necesario para AnyAsync
+
+namespace ApiComponents.Persistence.Repositories
+{
+    public class CountryRepository : ICountryRepository
+    {
+        private readonly AppDbContext _context;
+
+        public CountryRepository(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // --- READ ---
+        public async Task<IEnumerable<Country>> GetAllAsync()
+        {
+            return await _context.Country.ToListAsync();
+        }
+
+        public async Task<Country> GetByIdAsync(int id)
+        {
+            return await _context.Country.FindAsync(id);
+        }
+        
+        // --- CREATE ---
+        public async Task AddAsync(Country country)
+        {
+            // Agrega la entidad al contexto
+            _context.Country.Add(country);
+            
+            // Guarda los cambios en la base de datos
+            await _context.SaveChangesAsync();
+        }
+
+        // --- UPDATE ---
+        public async Task UpdateAsync(Country country)
+        {
+            // Indica a EF Core que el estado de la entidad ha sido modificado
+            _context.Entry(country).State = EntityState.Modified;
+            
+            // Guarda los cambios
+            await _context.SaveChangesAsync();
+        }
+
+        // --- DELETE ---
+        public async Task DeleteAsync(int id)
+        {
+            // 1. Encuentra la entidad. FindAsync es ideal para buscar por PK.
+            var country = await _context.Country.FindAsync(id);
+
+            if (country != null)
+            {
+                // 2. Marca la entidad para eliminación
+                _context.Country.Remove(country);
+                
+                // 3. Guarda los cambios (ejecuta el DELETE)
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        // --- EXISTS CHECK ---
+        public async Task<bool> ExistsAsync(int id)
+        {
+            // Usa AnyAsync para una verificación de existencia eficiente
+            return await _context.Country.AnyAsync(c => c.id == id);
+        }
+
+        // -- CHECKEA SI LA DESCRIPCIÓN DEL PAIS YA EXISTE 
+        public async Task<bool> ExistsByDescriptionAsync(string description)
+        {
+            // Utilizamos AnyAsync para verificar si existe algún país con esa descripción.
+            return await _context.Country.AnyAsync(c => c.description == description);
+        }
+    }
+}
+
+5. Capa de Servicios (Application/Business)
+Esta capa contiene la lógica de negocio.
+
+A. Interfaz del Servicio
+Archivo: Services/ICountryService.cs 
+Acción: Define los métodos que el controlador usará.
+
+using ApiComponents.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace ApiComponents.Services
+{
+    public interface ICountryService
+    {
+        Task<IEnumerable<Country>> GetAllCountriesAsync();
+        Task<Country> GetCountryByIdAsync(int id);
+        Task AddCountryAsync(Country country);
+        Task UpdateCountryAsync(int id, Country country);
+        Task DeleteCountryAsync(int id);
+    }
+}
+
+B. Implementación del Servicio
+Archivo: Services/CountryService.cs 
+Acción: Implementa el contrato e inyecta el repositorio (ICountryRepository).
+
+using ApiComponents.Models;
+using ApiComponents.Persistence.Repositories;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System;
+using System.Linq;
+
+namespace ApiComponents.Services
+{
+    public class CountryService : ICountryService
+    {
+        private readonly ICountryRepository _countryRepository;
+
+        public CountryService(ICountryRepository countryRepository)
+        {
+            _countryRepository = countryRepository;
+        }
+
+        // --- READ: Obtener todos ---
+        public async Task<IEnumerable<Country>> GetAllCountriesAsync()
+        {
+            // Simplemente delegamos la acción al Repositorio. 
+            // Podríamos añadir lógica de caché o filtros globales aquí.
+            return await _countryRepository.GetAllAsync();
+        }
+
+        // --- READ: Obtener por ID ---
+        public async Task<Country> GetCountryByIdAsync(int id)
+        {
+            // 1. Validación de ID de entrada
+            if (id <= 0)
+            {
+                throw new ArgumentException("El ID del país debe ser positivo.");
+            }
+
+            // 2. Llama al Repositorio
+            var country = await _countryRepository.GetByIdAsync(id);
+
+            // 3. Lógica de Negocio: Si no existe, lanza una excepción para que el Controller devuelva 404
+            if (country == null)
+            {
+                throw new KeyNotFoundException($"País con ID {id} no encontrado.");
+            }
+
+            return country;
+        }
+
+        // --- CREATE: Agregar País ---
+        public async Task AddCountryAsync(Country country)
+        {
+            // Lógica de Negocio: 1. Validación de datos del Dominio
+            if (string.IsNullOrWhiteSpace(country.description))
+            {
+                throw new ArgumentException("La descripción del país es obligatoria.");
+            }
+
+            // Lógica de Negocio: 2. Validar unicidad (Patrón de Verificación en el Servicio)
+            if (await _countryRepository.ExistsByDescriptionAsync(country.description))
+            {
+                // Lanzamos una excepción de negocio clara. 
+                // El Controlador deberá capturarla y devolver un HTTP 409 Conflict.
+                throw new InvalidOperationException($"El país '{country.description}' ya se encuentra registrado.");
+            }
+
+            await _countryRepository.AddAsync(country);
+        }
+
+        // --- UPDATE: Actualizar País ---
+        public async Task UpdateCountryAsync(int id, Country country)
+        {
+            // 1. Verificación de existencia antes de actualizar
+            if (!await _countryRepository.ExistsAsync(id))
+            {
+                throw new KeyNotFoundException($"País con ID {id} no encontrado para actualizar.");
+            }
+            
+            // 2. Lógica de Negocio: Asegurarse de que el objeto tenga el ID correcto
+            country.id = id;
+
+            // 3. Llama al Repositorio para actualizar
+            await _countryRepository.UpdateAsync(country);
+        }
+
+        // --- DELETE: Eliminar País ---
+        public async Task DeleteCountryAsync(int id)
+        {
+            // 1. Verificación de existencia
+            if (!await _countryRepository.ExistsAsync(id))
+            {
+                throw new KeyNotFoundException($"País con ID {id} no encontrado para eliminar.");
+            }
+            
+            // 2. Lógica de Negocio (Ejemplo: No permitir eliminar si hay empleados asociados)
+            // Esto requeriría una inyección de IEmployeeRepository y una consulta. 
+            // Por simplicidad, asumiremos que las restricciones de clave foránea de la DB lo manejan.
+
+            // 3. Llama al Repositorio para eliminar
+            await _countryRepository.DeleteAsync(id);
+        }
+    }
+}
+
+6. Capa de Presentación (Controllers)
+Archivo: Controllers/CountryController.cs 
+Acción: Maneja las peticiones HTTP e inyecta el servicio (ICountryService).
+
+using ApiComponents.Models;
+using ApiComponents.Services;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System;
+using System.Linq;
+
+namespace ApiComponents.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class CountryController : ControllerBase
+    {
+        private readonly ICountryService _countryService;
+
+        public CountryController(ICountryService countryService)
+        {
+            _countryService = countryService;
+        }
+
+        // ----------------------------------------------------------------------
+        // READ: GET /api/Country (Obtener todos)
+        // ----------------------------------------------------------------------
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Country>>> GetCountries()
+        {
+            var countries = await _countryService.GetAllCountriesAsync();
+            return Ok(countries);
+        }
+
+        // ----------------------------------------------------------------------
+        // READ: GET /api/Country/{id} (Obtener por ID)
+        // ----------------------------------------------------------------------
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Country>> GetCountry(int id)
+        {
+            try
+            {
+                var country = await _countryService.GetCountryByIdAsync(id);
+                return Ok(country);
+            }
+            catch (KeyNotFoundException)
+            {
+                // El servicio lanzó esta excepción si el país no fue encontrado
+                return NotFound(); // HTTP 404
+            }
+            catch (ArgumentException ex)
+            {
+                // El servicio lanzó esta excepción si el ID es inválido
+                return BadRequest(ex.Message); // HTTP 400
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // CREATE: POST /api/Country (Crear nuevo)
+        // ----------------------------------------------------------------------
+        [HttpPost]
+        public async Task<ActionResult<Country>> PostCountry(Country country)
+        {
+            try
+            {
+                // El servicio se encarga de las validaciones y el guardado
+                await _countryService.AddCountryAsync(country);
+
+                // Devuelve 201 CreatedAtAction, apuntando al nuevo recurso
+                return CreatedAtAction(nameof(GetCountry), new { id = country.id }, country);
+            }
+            catch (ArgumentException ex)
+            {
+                // Captura validaciones de campo (ej. descripción vacía)
+                return BadRequest(ex.Message); // HTTP 400
+            }
+
+            catch (InvalidOperationException ex)
+            {
+                // Captura la excepción de unicidad lanzada por el Servicio Ej: "El país Argentina ya se encuentra registrado."
+                return Conflict(ex.Message); // HTTP 409 Conflict (El recurso ya existe)
+            }
+            
+        }
+
+        // ----------------------------------------------------------------------
+        // UPDATE: PUT /api/Country/{id} (Actualizar existente)
+        // ----------------------------------------------------------------------
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutCountry(int id, Country country)
+        {
+            if (id != country.id)
+            {
+                return BadRequest("El ID de la ruta no coincide con el ID del cuerpo."); // HTTP 400
+            }
+
+            try
+            {
+                await _countryService.UpdateCountryAsync(id, country);
+                return NoContent(); // HTTP 204 (Estándar para PUT exitoso sin contenido de retorno)
+            }
+            catch (KeyNotFoundException)
+            {
+                // El servicio lanzó esta excepción si el país no existe
+                return NotFound(); // HTTP 404
+            }
+            catch (ArgumentException ex)
+            {
+                // Captura validaciones de campo
+                return BadRequest(ex.Message); // HTTP 400
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // DELETE: DELETE /api/Country/{id} (Eliminar)
+        // ----------------------------------------------------------------------
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCountry(int id)
+        {
+            try
+            {
+                await _countryService.DeleteCountryAsync(id);
+                return NoContent(); // HTTP 204 (Estándar para DELETE exitoso)
+            }
+            catch (KeyNotFoundException)
+            {
+                // El servicio lanzó esta excepción si el país no existe
+                return NotFound(); // HTTP 404
+            }
+            // Opcionalmente, podrías capturar DbUpdateException si falla por FK (Foreign Key constraint)
+            // y devolver un 409 Conflict.
+        }
+    }
+}
+
+7. Configuración de Dependencias
+Archivo: Program.cs 
+Acción: Registra las nuevas interfaces y clases de implementación para la inyección de dependencias (DI).
+
+// ... (código existente) ...
+
+// INYECCIÓN DE DEPENDENCIAS DEL REPOSITORIO
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+// AGREGADO REPOSITORIO DE PAÍS
+builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+
+// INYECCIÓN DE DEPENDENCIAS DE SERVICIOS
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+// AGREGADO SERVICIO DE PAÍS
+builder.Services.AddScoped<ICountryService, CountryService>();
+
+builder.Services.AddControllers();
+
+// EL CODIGO DE ABAJO SOLO ES NECESARIO SI NO ESTÁ YA PRESENTE EN TU Program.cs
+
+// Configurar Swagger/OpenAPI (Swashbuckle)
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ApiComponents API",
+        Version = "v1"
+    });
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+   
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "ApiComponents v1");
+        // Mantener la UI bajo /swagger (ruta por defecto -> /swagger/index.html)
+        c.RoutePrefix = "swagger";
+    });
+
+    // app.MapOpenApi(); // Elimina si no usas NSwag
+}
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.MapGet("/swagger-ui", (HttpContext ctx) =>
+{
+    ctx.Response.Redirect("/swagger/index.html", permanent: false);
+    return Results.Empty;
+});
+
+app.Run();
+
+// Solo para que las herramientas de Migración puedan inicializar el Host
+public partial class Program { }
+
+// Verifica que el paquete NuGet "Swashbuckle.AspNetCore" esté instalado en tu proyecto.
+// Si no está instalado, ejecuta el siguiente comando en la consola del Administrador de paquetes NuGet:
+// Install-Package Swashbuckle.AspNetCore
+
+8. MIGRAR/CREAR LA TABLA CON ENTITY FRAMEWORK A SQLSERVER
+
+1. HACER UN REBUILD DEL PROYECTO (Pestaña Compilar -> Recompilar solución) PARA QUE NO HAYA ERRORES Y EF PUEDA CREAR LA TABLA
+2. HERRAMIENTAS > ADMINISTRADOR DE PAQUETES NUGET > CONSOLA DEL ADMINISTRADOR DE PAQUETES
+3. EN LA CONSULA TIPIAR:
+
+  a) Add-Migration addCountryTable 	
+   
+  En caso de error otra alternativa: dotnet ef migrations add NombreDeTuCambio --context AppDbContext   
+   
+  b) Update-Database
+ 
+  En caso de error otra alternativa: dotnet ef database update --context AppDbContext	
+
+  c) Abrir SQL Server Management Studio y verificar que la tabla Country fue creada exitosamente.
+
+--------------------------------------------------------------------------------------------------------------------------------
+RESUMEN FLUJO COMPLETO DE 8 PASOS PARA CREAR UNA ENTIDAD/TABLA
+--------------------------------------------------------------------------------------------------------------------------------
+
+1) Modelo: Definir la clase Country.cs.
+
+2) Configuración: Crear CountryConfiguration.cs (Fluent API).
+
+3) Contexto: Actualizar AppDbContext.cs con el DbSet<Country>.
+
+4) Repositorio: Crear ICountryRepository.cs y CountryRepository.cs.
+
+5) Servicio: Crear ICountryService.cs y CountryService.cs (Lógica de negocio/Validaciones).
+
+6) Controlador: Crear CountryController.cs (Endpoints HTTP).
+
+7) Configuración de Dependencias en Program.cs.
+
+8) Migrar la base de datos con EF Core.
+
+NOTA: EN GENERAL, PARA CUALQUIER VERBO HTTP (GET, POST, PUT, DELETE, ETC.) EN ESTA ARQUITECTURA, 
+EN UN BUG, LA INMENSA MAYORÍA DE LOS ERRORES PROVIENEN DE LA CAPA DE SERVICIOS Y LA CAPA DE REPOSITORIOS.
+
+--------------------------------------------------------------------------------------------------------------------------------
+RESUMEN DE COMO FUNCIONA CUANDO EL USUARIO HACE UNA PETICIÓN HTTP (GET, PUT, DELETE, POST)
+--------------------------------------------------------------------------------------------------------------------------------
+
+Si el usuario hace una petición para obtener todos los países, ej GET /api/countries este es el flujo de llamadas:
+
+1. Browser/Cliente llama al Controlador (CountryController.cs).
+
+2. El Controlador llama al Servicio: _countryService.GetAllCountriesAsync()
+
+3. El Servicio ejecuta la lógica (por ejemplo, validar permisos o paginación) 
+y luego llama al Repositorio: _countryRepository.GetAllAsync()
+
+4. El Repositorio usa el Contexto de DB (_context) de Entity Framework Core (EF Core) 
+   para ejecutar la consulta y traer los datos de los países desde SQL Server.
+
+5. Los datos viajan de regreso (Repositorio -> Servicio -> Controlador -> Cliente)
+
+En resumen: El Controlador solo sabe cómo obtener el Servicio, y el Servicio solo sabe cómo obtener el Repositorio.

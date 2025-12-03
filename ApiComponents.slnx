@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Elementos de la solución/">
+    <File Path="APUNTES.txt" />
+    <File Path="CREAR PASO A PASO UNA ENTIDAD-TABLA.txt" />
+    <File Path="MIGRATION_STEPS.txt" />
+  </Folder>
+  <Folder Name="/Solution Items/" />
+  <Project Path="ApiComponents/ApiComponents.csproj" />
+</Solution>
