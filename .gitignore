@@ -361,3 +361,12 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# ----------------------------------
+# Sección Personal/Archivos Privados
+# ----------------------------------
+
+# Archivos de notas/configuración personales (No subir a GitHub)
+APUNTES.txt
+CREAR PASO A PASO UNA ENTIDAD-TABLA.txt
+MIGRATION_STEPS.txt
