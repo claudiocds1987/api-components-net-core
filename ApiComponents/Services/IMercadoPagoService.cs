@@ -7,5 +7,6 @@ namespace ApiComponents.Services
     {
         // Recibe el carrito y devuelve el PreferenceId de MP
         Task<string> CreatePreferenceAsync(CartDto cart);
+        Task<string> GetPaymentStatusAsync(string paymentId); // Para validar contra la API de MP
     }
 }

@@ -28,7 +28,7 @@ namespace ApiComponents.Persistence.Repositories
         public async Task UpdateStatusAsync(string preferenceId, string status)
         {
             var order = await GetByPreferenceIdAsync(preferenceId);
-            if (order != null)
+            if (order != null && order.Status != status) // Solo actualiza si el estado cambió
             {
                 order.Status = status;
                 await _context.SaveChangesAsync();
