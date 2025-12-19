@@ -22,14 +22,16 @@ var connectionString = builder.Configuration.GetConnectionString("Connection"); 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString)
 );
 // INYECCIÓN DE DEPENDENCIAS DEL REPOSITORIO 
-// 1. Repositorio de Empleados
+// 1. Repositorio de Empleados, Country, Order (para mercado pago)
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 //  INYECCIÓN DE DEPENDENCIAS DE SERVICIOS
-// 1. Servicio de Employee y country
+// 1. Servicio de Employee, Country,MercadoPago
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
+builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
 builder.Services.AddControllers();
 
 // Configurar Swagger/OpenAPI (Swashbuckle)

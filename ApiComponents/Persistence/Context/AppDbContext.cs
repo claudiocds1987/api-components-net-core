@@ -20,6 +20,8 @@ namespace ApiComponents.Persistence.Context
         public DbSet<Position> Position { get; set; }
         public DbSet<Country> Country { get; set; }
 
+        public DbSet<Order> Orders { get; set; } // para mercado pago 
+
         // 2. OnModelCreating: Carga todas las configuraciones (ej: descripcion unica, id único) de cada tabla
         //    configurado en carpeta Persistence/Configurations
         protected override void OnModelCreating(ModelBuilder modelBuilder)
