@@ -20,7 +20,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:5000") // URL de tu Angular cuando este en github poner la url del deploy
+        policy.WithOrigins("https://claudiocds1987.github.io") // URL del proyecto frontend en github
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

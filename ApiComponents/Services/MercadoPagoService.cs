@@ -45,15 +45,10 @@ public class MercadoPagoService : IMercadoPagoService
             // CONFIGURACIÓN DE RETORNO (Cambiado a HTTPS para validación)
             BackUrls = new PreferenceBackUrlsRequest
             {
-                // Usamos URLs externas para que Mercado Pago no rechace el 'AutoReturn'
-                Success = "https://www.google.com",
-                Failure = "https://www.google.com",
-                Pending = "https://www.google.com"
-
-                // cuando el front tenga estas urls, se deben actualizar aquí Y Borrar las de arriba
-                //Success = "http://localhost:4200/pago-exitoso",
-                //Failure = "http://localhost:4200/pago-fallido",
-                //Pending = "http://localhost:4200/pago-pendiente"
+                // URLs de github pages para resultados de pago
+                Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result",
+                Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result",
+                Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result"
             },
 
             // Obligatorio que coincida con BackUrls.Success definido
