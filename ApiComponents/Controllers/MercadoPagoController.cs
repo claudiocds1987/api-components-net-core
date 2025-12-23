@@ -3,6 +3,7 @@ using ApiComponents.DTOs;
 using ApiComponents.Persistence.Repositories;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
 
 [ApiController]
@@ -29,14 +30,51 @@ public class MercadoPagoController : ControllerBase
     [HttpPost("webhook")]
     public async Task<IActionResult> MercadoPagoWebhook([FromQuery] string topic, [FromQuery] string id)
     {
-        if (topic == "payment")
+        // Mercado Pago envía notificaciones por 'topic=payment' o a veces solo el id
+        if (topic == "payment" || string.IsNullOrEmpty(topic))
         {
-            var status = await _mpService.GetPaymentStatusAsync(id);
-            // Aquí deberías buscar la orden y actualizarla
-            // Para eso, el 'external_reference' en la preferencia es clave
+            try
+            {
+                var client = new MercadoPago.Client.Payment.PaymentClient();
+                var payment = await client.GetAsync(long.Parse(id));
+
+                if (payment.Status == "approved")
+                {
+                    // CORRECCIÓN CLAVE: El PreferenceId está dentro del objeto Order
+                    var preferenceId = payment.Order?.Id.ToString();
+
+                    // El ExternalReference es el ID numérico de tu base de datos (como string)
+                    if (int.TryParse(payment.ExternalReference, out int orderId))
+                    {
+                        // Actualizamos la orden usando el PreferenceId
+                        // Asegúrate que tu repositorio busque por este string
+                        await _orderRepository.UpdateStatusAsync(preferenceId, "Approved");
+
+                        Console.WriteLine($"Orden {orderId} (Pref: {preferenceId}) aprobada con éxito.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Logueamos el error pero devolvemos Ok() para que MP no reintente infinitamente
+                Console.WriteLine($"Error procesando Webhook: {ex.Message}");
+            }
         }
+
+        // Siempre devolvemos 200 OK para confirmar recepción a Mercado Pago
         return Ok();
     }
+    //[HttpPost("webhook")]
+    //public async Task<IActionResult> MercadoPagoWebhook([FromQuery] string topic, [FromQuery] string id)
+    //{
+    //    if (topic == "payment")
+    //    {
+    //        var status = await _mpService.GetPaymentStatusAsync(id);
+    //        // Aquí deberías buscar la orden y actualizarla
+    //        // Para eso, el 'external_reference' en la preferencia es clave
+    //    }
+    //    return Ok();
+    //}
 
     // CONFIRMACIÓN SEGURA DESDE EL FRONTEND
     [HttpPost("confirm-payment")]
