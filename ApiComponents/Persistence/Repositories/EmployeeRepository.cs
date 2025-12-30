@@ -2,6 +2,7 @@
 using ApiComponents.Models;
 using ApiComponents.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -133,11 +134,24 @@ namespace ApiComponents.Persistence.Repositories
 
         public async Task AddEmployeeListAsync(List<Employee> employees)
         {
-            // Usa AddRange para agregar múltiples entidades al contexto de EF Core
-            _context.Employees.AddRange(employees);
+            try
+            {
+                // 1. Agregamos el rango de 20 empleados al contexto
+                await _context.Employees.AddRangeAsync(employees);
 
-            // Guarda todos los cambios en la base de datos de manera asíncrona
-            await _context.SaveChangesAsync();
+                // 2. Guardamos en la base de datos
+                await _context.SaveChangesAsync();
+
+                // 3. LIMPIEZA DE MEMORIA (Crucial para el plan gratuito)
+                // Esto le dice a EF Core que deje de rastrear los registros que ya guardó.
+                // Evita que el contexto crezca infinitamente y consuma RAM del servidor.
+                _context.ChangeTracker.Clear();
+            }
+            catch (Exception ex)
+            {
+                // Si hay un error, lo lanzamos para que el Service pueda capturarlo
+                throw new Exception($"Error en repositorio al procesar lote: {ex.Message}", ex);
+            }
         }
 
         public async Task UpdateAsync(Employee employee)

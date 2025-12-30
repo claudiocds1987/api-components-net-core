@@ -3,6 +3,7 @@ using ApiComponents.Models;
 using ApiComponents.Persistence.Repositories; // Para inyectar el repositorio
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ApiComponents.Services
@@ -90,14 +91,26 @@ namespace ApiComponents.Services
 
         public async Task AddEmployeeListAsync(List<Employee> employees)
         {
-            // 1. Lógica de Negocio para el batch (ej. Limitar el tamaño del batch)
-            if (employees.Count > 100)
+            // 1. Validación de seguridad
+            if (employees == null || !employees.Any()) return;
+
+            if (employees.Count > 500)
             {
-                throw new ApplicationException("El tamaño máximo del lote es 100.");
+                throw new ApplicationException("El tamaño máximo total permitido es 500.");
             }
 
-            // 2. Llama al repositorio
-            await _employeeRepository.AddEmployeeListAsync(employees);
+            // 2. Procesamiento por lotes
+            var lotes = employees.Chunk(20);
+
+            foreach (var lote in lotes)
+            {
+                // 3. Enviamos el lote al repositorio
+                await _employeeRepository.AddEmployeeListAsync(lote.ToList());
+
+                // 4. Pausa de cortesía (IMPORTANTE para servidores compartidos)
+                // Esto evita que SQL Server interprete la ráfaga de peticiones como un ataque o saturación
+                await Task.Delay(100);
+            }
         }
     }
 }

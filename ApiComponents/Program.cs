@@ -1,4 +1,3 @@
-
 using ApiComponents.Persistence.Context;
 using ApiComponents.Persistence.Repositories;
 using ApiComponents.Services;
@@ -12,6 +11,7 @@ using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,23 +20,33 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("https://claudiocds1987.github.io") // URL del proyecto frontend en github
+        policy.WithOrigins("https://claudiocds1987.github.io")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-// --- 2. CONFIGURACIÓN DE JSON (Para evitar conflictos de mayúsculas entre .NET y Angular) ---
+// --- 2. CONFIGURACIÓN DE JSON ---
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Mantiene los nombres del DTO
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
-// Cadena de conexión
+// --- 3. CONFIGURACIÓN DE BASE DE DATOS CON RESILIENCIA ---
 var connectionString = builder.Configuration.GetConnectionString("Connection");
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 
-// --- 3. INYECCIÓN DE DEPENDENCIAS ---
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        // Habilita los reintentos automáticos para errores transitorios (como el Error 64)
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,           // Máximo de reintentos
+            maxRetryDelay: TimeSpan.FromSeconds(10), // Tiempo entre reintentos
+            errorNumbersToAdd: null     // SQL Server ya conoce los códigos de error comunes
+        );
+    }));
+
+// --- 4. INYECCIÓN DE DEPENDENCIAS ---
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -57,17 +67,14 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// --- 4. MIDDLEWARES ---
+// --- 5. MIDDLEWARES ---
 
 app.UseCors("AllowAngular");
 
-// Quitamos el IF para que funcione en el servidor gratuito
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "ApiComponents v1");
-
-    // IMPORTANTE: Al dejar RoutePrefix vacío, Swagger cargará en la raíz (http://apicomponents.runasp.net/)
     c.RoutePrefix = string.Empty;
 });
 
@@ -78,5 +85,3 @@ app.MapControllers();
 app.Run();
 
 public partial class Program { }
-
-
