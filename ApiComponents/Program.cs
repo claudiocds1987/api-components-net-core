@@ -59,28 +59,21 @@ var app = builder.Build();
 
 // --- 4. MIDDLEWARES ---
 
-// ¡IMPORTANTE! El UseCors debe ir DESPUÉS de UseRouting (si estuviera) y ANTES de UseAuthorization
 app.UseCors("AllowAngular");
 
-if (app.Environment.IsDevelopment())
+// Quitamos el IF para que funcione en el servidor gratuito
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "ApiComponents v1");
-        c.RoutePrefix = "swagger";
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ApiComponents v1");
+
+    // IMPORTANTE: Al dejar RoutePrefix vacío, Swagger cargará en la raíz (http://apicomponents.runasp.net/)
+    c.RoutePrefix = string.Empty;
+});
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-
-app.MapGet("/swagger-ui", (HttpContext ctx) =>
-{
-    ctx.Response.Redirect("/swagger/index.html", permanent: false);
-    return Results.Empty;
-});
 
 app.Run();
 
