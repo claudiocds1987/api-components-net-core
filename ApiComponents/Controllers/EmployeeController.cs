@@ -4,6 +4,7 @@ using ApiComponents.Services; // Usamos el namespace del servicio
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ApiComponents.Controllers
@@ -101,19 +102,40 @@ namespace ApiComponents.Controllers
 
         // --- CREATE: POST (Batch/Lista) ---
         [HttpPost("batch")]
-        public async Task<ActionResult> PostEmployeeList(List<Employee> employees)
+        public async Task<IActionResult> PostEmployeeList([FromBody] List<Employee> employees)
         {
+            // 1. Validación inicial
+            if (employees == null || !employees.Any())
+            {
+                return BadRequest("La lista de empleados no puede estar vacía.");
+            }
+
             try
             {
-                // Delega la lógica de inserción masiva al servicio
+                // 2. Llamada al servicio que procesa por lotes de 20
                 await _employeeService.AddEmployeeListAsync(employees);
 
-                return Ok(employees.Count + " empleados agregados exitosamente.");
+                // 3. Respuesta exitosa
+                return Ok(new
+                {
+                    message = "Procesamiento por lotes completado con éxito.",
+                    count = employees.Count
+                });
             }
             catch (ApplicationException ex)
             {
-                // Capturar excepciones de validación de negocio (ej. "lote demasiado grande")
-                return BadRequest(ex.Message);
+                // Errores de lógica de negocio (ej: más de 500 registros)
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // Errores inesperados (Conexión, base de datos, etc.)
+                // Nota: En producción podrías querer loguear 'ex' en un archivo
+                return StatusCode(500, new
+                {
+                    error = "Ocurrió un error al procesar la lista en el servidor.",
+                    details = ex.Message // Esto te ayudará a ver el error real en Swagger
+                });
             }
         }
 

@@ -75,7 +75,7 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "ApiComponents v1");
-    c.RoutePrefix = string.Empty;
+    c.RoutePrefix = string.Empty; // Esto hace que Swagger sea la página de inicio
 });
 
 app.UseHttpsRedirection();
