@@ -370,3 +370,7 @@ FodyWeavers.xsd
 APUNTES.txt
 CREAR PASO A PASO UNA ENTIDAD-TABLA.txt
 MIGRATION_STEPS.txt
+
+# Archivos de configuración sensibles
+ApiComponents/appsettings.Development.json
+ApiComponents/appsettings.Production.json
