@@ -24,18 +24,22 @@ public class MercadoPagoService : IMercadoPagoService
         _configuration = configuration;
         _orderRepository = orderRepository;
 
-        // Intentamos leer de la sección (appsettings) o directamente de la raíz (Variables de Entorno)
+        // --- CORRECCIÓN CRÍTICA ---
+        // Fuerza a .NET 8 a usar protocolos modernos de red en el servidor compartido
+        System.Net.ServicePointManager.SecurityProtocol =
+            System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls13;
+        // ---------------------------
+
         var token = _configuration["MercadoPago:AccessToken"] ?? _configuration["MercadoPago__AccessToken"];
         var baseUrl = _configuration["MercadoPago:BaseUrl"] ?? _configuration["MercadoPago__BaseUrl"];
 
-        // Validación de seguridad para que el servidor no "muera" en silencio
         if (string.IsNullOrEmpty(token))
         {
-            throw new Exception("CRÍTICO: El AccessToken de Mercado Pago no se encontró en las variables de entorno.");
+            throw new Exception("CRÍTICO: El AccessToken de Mercado Pago no se encontró.");
         }
 
         MercadoPagoConfig.AccessToken = token;
-        _baseUrl = baseUrl ?? "https://apicomponents.runasp.net"; // Valor por defecto si falla
+        _baseUrl = baseUrl ?? "https://apicomponents.runasp.net";
     }
 
     //public MercadoPagoService(IConfiguration configuration, IOrderRepository orderRepository)
@@ -43,10 +47,21 @@ public class MercadoPagoService : IMercadoPagoService
     //    _configuration = configuration;
     //    _orderRepository = orderRepository;
 
-    //    // 1. Cargamos configuración
-    //    MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
-    //    _baseUrl = _configuration["MercadoPago:BaseUrl"]; // Lee de appsettings.json o appsettings.Production.json
+    //    // Intentamos leer de la sección (appsettings) o directamente de la raíz (Variables de Entorno)
+    //    var token = _configuration["MercadoPago:AccessToken"] ?? _configuration["MercadoPago__AccessToken"];
+    //    var baseUrl = _configuration["MercadoPago:BaseUrl"] ?? _configuration["MercadoPago__BaseUrl"];
+
+    //    // Validación de seguridad para que el servidor no "muera" en silencio
+    //    if (string.IsNullOrEmpty(token))
+    //    {
+    //        throw new Exception("CRÍTICO: El AccessToken de Mercado Pago no se encontró en las variables de entorno.");
+    //    }
+
+    //    MercadoPagoConfig.AccessToken = token;
+    //    _baseUrl = baseUrl ?? "https://apicomponents.runasp.net"; // Valor por defecto si falla
     //}
+
+
 
     public async Task<string> CreatePreferenceAsync(CartDto cart)
     {
@@ -92,17 +107,18 @@ public class MercadoPagoService : IMercadoPagoService
         try
         {
             var preference = await client.CreateAsync(request);
-
-            // 3. Actualizamos la orden con el PreferenceId que nos dio MP
             order.PreferenceId = preference.Id;
-            await _orderRepository.UpdateStatusAsync(order.PreferenceId, "Pending"); // O un método Update similar
-
-            return preference.Id; // este es el PreferenceId que recibe en el frontend
+            await _orderRepository.UpdateStatusAsync(order.PreferenceId, "Pending");
+            return preference.Id;
         }
-        catch (MercadoPagoApiException ex)
+        catch (Exception ex) // Cambiado de MercadoPagoApiException a Exception
         {
-            Console.WriteLine($"Error MP: {ex.ApiError.Message}");
-            throw;
+            // Esto escribirá el error real en los logs de MonsterASP en lugar de cerrar el proceso
+            Console.WriteLine($"ERROR COMPLETO: {ex.Message}");
+            if (ex.InnerException != null)
+                Console.WriteLine($"INNER ERROR: {ex.InnerException.Message}");
+
+            throw new Exception($"Error al conectar con Mercado Pago: {ex.Message}", ex);
         }
     }
 
