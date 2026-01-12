@@ -24,10 +24,29 @@ public class MercadoPagoService : IMercadoPagoService
         _configuration = configuration;
         _orderRepository = orderRepository;
 
-        // 1. Cargamos configuración
-        MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
-        _baseUrl = _configuration["MercadoPago:BaseUrl"]; // Lee de appsettings.json o appsettings.Production.json
+        // Intentamos leer de la sección (appsettings) o directamente de la raíz (Variables de Entorno)
+        var token = _configuration["MercadoPago:AccessToken"] ?? _configuration["MercadoPago__AccessToken"];
+        var baseUrl = _configuration["MercadoPago:BaseUrl"] ?? _configuration["MercadoPago__BaseUrl"];
+
+        // Validación de seguridad para que el servidor no "muera" en silencio
+        if (string.IsNullOrEmpty(token))
+        {
+            throw new Exception("CRÍTICO: El AccessToken de Mercado Pago no se encontró en las variables de entorno.");
+        }
+
+        MercadoPagoConfig.AccessToken = token;
+        _baseUrl = baseUrl ?? "https://apicomponents.runasp.net"; // Valor por defecto si falla
     }
+
+    //public MercadoPagoService(IConfiguration configuration, IOrderRepository orderRepository)
+    //{
+    //    _configuration = configuration;
+    //    _orderRepository = orderRepository;
+
+    //    // 1. Cargamos configuración
+    //    MercadoPagoConfig.AccessToken = _configuration["MercadoPago:AccessToken"];
+    //    _baseUrl = _configuration["MercadoPago:BaseUrl"]; // Lee de appsettings.json o appsettings.Production.json
+    //}
 
     public async Task<string> CreatePreferenceAsync(CartDto cart)
     {

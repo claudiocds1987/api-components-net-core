@@ -22,9 +22,28 @@ public class MercadoPagoController : ControllerBase
     [HttpPost("create-preference")]
     public async Task<IActionResult> CreatePreference([FromBody] CartDto cart)
     {
-        var preferenceId = await _mpService.CreatePreferenceAsync(cart);
-        return Ok(new { id = preferenceId });
+        try
+        {
+            var preferenceId = await _mpService.CreatePreferenceAsync(cart);
+            return Ok(new { id = preferenceId });
+        }
+        catch (Exception ex)
+        {
+            // Esto te permitirá ver el error real en Postman
+            return StatusCode(500, new
+            {
+                error = "Error en el servidor backend",
+                detalle = ex.Message
+            });
+        }
     }
+
+    //[HttpPost("create-preference")]
+    //public async Task<IActionResult> CreatePreference([FromBody] CartDto cart)
+    //{
+    //    var preferenceId = await _mpService.CreatePreferenceAsync(cart);
+    //    return Ok(new { id = preferenceId });
+    //}
 
     // WEBHOOK PROFESIONAL: Recibe notificaciones asincrónicas de MP
     [HttpPost("webhook")]
