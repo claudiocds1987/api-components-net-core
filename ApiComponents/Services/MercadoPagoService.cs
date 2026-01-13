@@ -25,71 +25,43 @@ public class MercadoPagoService : IMercadoPagoService
         _configuration = configuration;
         _orderRepository = orderRepository;
 
-        // --- 1. PARCHE DE SEGURIDAD ---
+        // 1. PARCHE DE SEGURIDAD (Obligatorio para servidores compartidos)
         System.Net.ServicePointManager.SecurityProtocol =
             System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls13;
 
-        // --- 2. LECTURA DIRECTA DE LA VARIABLE DE ENTORNO ---
-        // Cambiamos la lógica anterior por esta más directa para testear MonsterASP
-        var token = _configuration.GetValue<string>("MercadoPago__AccessToken");
+        // 2. LECTURA DIRECTA DEL SISTEMA (Bypass de IConfiguration)
+        // Esto lee la variable exactamente como la escribiste en el panel verde
+        var token = Environment.GetEnvironmentVariable("MercadoPago__AccessToken");
+        var baseUrl = Environment.GetEnvironmentVariable("MercadoPago__BaseUrl");
 
-        // También para la BaseUrl por las dudas:
-        var baseUrl = _configuration.GetValue<string>("MercadoPago__BaseUrl");
-
-        // --- 3. VALIDACIÓN ---
+        // 3. LOG DE DIAGNÓSTICO
         if (string.IsNullOrEmpty(token))
         {
-            // Este error saldrá en los logs de MonsterASP si la variable no se lee
-            throw new Exception("CRÍTICO: El AccessToken no se leyó de las variables de entorno.");
+            // Si el token sigue siendo null, esto aparecerá en "ApplicationLog" del panel
+            Console.WriteLine("CRÍTICO: El token leído por Environment es NULL");
+            throw new Exception("AccessToken no encontrado en el sistema.");
         }
 
         MercadoPagoConfig.AccessToken = token;
         _baseUrl = baseUrl ?? "https://apicomponents.runasp.net";
     }
 
-    //public MercadoPagoService(IConfiguration configuration, IOrderRepository orderRepository)
-    //{
-    //    _configuration = configuration;
-    //    _orderRepository = orderRepository;
-
-    //    // --- CORRECCIÓN CRÍTICA ---
-    //    // Fuerza a .NET 8 a usar protocolos modernos de red en el servidor compartido
-    //    System.Net.ServicePointManager.SecurityProtocol =
-    //        System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls13;
-    //    // ---------------------------
-
-    //    var token = _configuration["MercadoPago:AccessToken"] ?? _configuration["MercadoPago__AccessToken"];
-    //    var baseUrl = _configuration["MercadoPago:BaseUrl"] ?? _configuration["MercadoPago__BaseUrl"];
-
-    //    if (string.IsNullOrEmpty(token))
-    //    {
-    //        throw new Exception("CRÍTICO: El AccessToken de Mercado Pago no se encontró.");
-    //    }
-
-    //    MercadoPagoConfig.AccessToken = token;
-    //    _baseUrl = baseUrl ?? "https://apicomponents.runasp.net";
-    //}
-
-
-    public async Task<string> CreatePreferenceAsync(CartDto cart)
+    public async Task<string> CreatePreferenceAsync(CartDto cart) // ORIGINAL
     {
         var client = new PreferenceClient();
         decimal total = cart.Items.Sum(i => i.Price * i.Quantity);
 
-        // --- PRUEBA DE DIAGNÓSTICO: COMENTAMOS LA BASE DE DATOS ---
-        /*
+        // 1. Primero creamos el objeto Order SIN ID (la DB lo generará)
         var order = new Order
         {
             TotalAmount = total,
             Status = "Pending"
+            // No asignamos Id ni PreferenceId todavía
         };
 
-        // Comentamos el guardado inicial para ver si la API deja de dar ERR_CONNECTION_RESET
-        // await _orderRepository.AddAsync(order);
-        */
-
-        // Usamos un ID ficticio para la prueba
-        string temporaryOrderId = "999";
+        // 2. Guardamos en la DB para que se genere el Id numérico
+        await _orderRepository.AddAsync(order);
+        // Ahora 'order.Id' ya tiene el número (ej: 1, 2, 3...) asignado por SQL Express
 
         var request = new PreferenceRequest
         {
@@ -103,31 +75,29 @@ public class MercadoPagoService : IMercadoPagoService
 
             BackUrls = new PreferenceBackUrlsRequest
             {
-                Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result",
-                Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result",
-                Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result"
+                // Agregado de /#/ antes de la ruta para que Angular reconozca la ruta interna
+                Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
+                Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
+                Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result"
             },
             AutoReturn = "approved",
 
-            // Usamos el ID temporal
-            ExternalReference = temporaryOrderId,
+            // Usamos el ID numérico convertido a string para Mercado Pago
+            ExternalReference = order.Id.ToString(),
 
             NotificationUrl = $"{_baseUrl}/api/MercadoPago/webhook",
         };
 
         try
         {
-            // Esta es la llamada crítica a Mercado Pago
             var preference = await client.CreateAsync(request);
-
-            // Comentamos la actualización en la DB por ahora
-            // order.PreferenceId = preference.Id;
-            // await _orderRepository.UpdateStatusAsync(order.PreferenceId, "Pending");
-
+            order.PreferenceId = preference.Id;
+            await _orderRepository.UpdateStatusAsync(order.PreferenceId, "Pending");
             return preference.Id;
         }
-        catch (Exception ex)
+        catch (Exception ex) // Cambiado de MercadoPagoApiException a Exception
         {
+            // Esto escribirá el error real en los logs de MonsterASP en lugar de cerrar el proceso
             Console.WriteLine($"ERROR COMPLETO: {ex.Message}");
             if (ex.InnerException != null)
                 Console.WriteLine($"INNER ERROR: {ex.InnerException.Message}");
@@ -135,64 +105,6 @@ public class MercadoPagoService : IMercadoPagoService
             throw new Exception($"Error al conectar con Mercado Pago: {ex.Message}", ex);
         }
     }
-    //public async Task<string> CreatePreferenceAsync(CartDto cart) // ORIGINAL
-    //{
-    //    var client = new PreferenceClient();
-    //    decimal total = cart.Items.Sum(i => i.Price * i.Quantity);
-
-    //    // 1. Primero creamos el objeto Order SIN ID (la DB lo generará)
-    //    var order = new Order
-    //    {
-    //        TotalAmount = total,
-    //        Status = "Pending"
-    //        // No asignamos Id ni PreferenceId todavía
-    //    };
-
-    //    // 2. Guardamos en la DB para que se genere el Id numérico
-    //    await _orderRepository.AddAsync(order);
-    //    // Ahora 'order.Id' ya tiene el número (ej: 1, 2, 3...) asignado por SQL Express
-
-    //    var request = new PreferenceRequest
-    //    {
-    //        Items = cart.Items.Select(item => new PreferenceItemRequest
-    //        {
-    //            Title = item.Name,
-    //            Quantity = (int)item.Quantity,
-    //            UnitPrice = (decimal)item.Price,
-    //            CurrencyId = "ARS"
-    //        }).ToList(),
-
-    //        BackUrls = new PreferenceBackUrlsRequest
-    //        {
-    //            Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result",
-    //            Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result",
-    //            Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/payment-result"
-    //        },
-    //        AutoReturn = "approved",
-
-    //        // Usamos el ID numérico convertido a string para Mercado Pago
-    //        ExternalReference = order.Id.ToString(),
-
-    //        NotificationUrl = $"{_baseUrl}/api/MercadoPago/webhook",
-    //    };
-
-    //    try
-    //    {
-    //        var preference = await client.CreateAsync(request);
-    //        order.PreferenceId = preference.Id;
-    //        await _orderRepository.UpdateStatusAsync(order.PreferenceId, "Pending");
-    //        return preference.Id;
-    //    }
-    //    catch (Exception ex) // Cambiado de MercadoPagoApiException a Exception
-    //    {
-    //        // Esto escribirá el error real en los logs de MonsterASP en lugar de cerrar el proceso
-    //        Console.WriteLine($"ERROR COMPLETO: {ex.Message}");
-    //        if (ex.InnerException != null)
-    //            Console.WriteLine($"INNER ERROR: {ex.InnerException.Message}");
-
-    //        throw new Exception($"Error al conectar con Mercado Pago: {ex.Message}", ex);
-    //    }
-    //}
 
     public async Task<string> GetPaymentStatusAsync(string paymentId)
     {

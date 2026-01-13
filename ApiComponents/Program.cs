@@ -12,7 +12,7 @@ using System.Net;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. PARCHE DE SEGURIDAD PARA HOSTING (TLS) ---
-// Esto permite que el servidor de MonsterASP se conecte a Mercado Pago sin colapsar
+// Obligatorio para que MonsterASP pueda hablar con los servidores de Mercado Pago
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 
 // --- 2. CONFIGURACIÓN DE CORS ---
@@ -20,10 +20,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        // Usamos AllowAnyOrigin temporalmente para confirmar que el Preflight no falle
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("https://claudiocds1987.github.io") // Dominio específico de mi Front
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .SetIsOriginAllowedToAllowWildcardSubdomains();
     });
 });
 
@@ -34,7 +34,6 @@ builder.Services.AddControllers()
     });
 
 // --- 4. CONFIGURACIÓN DE BASE DE DATOS ---
-// .NET buscará automáticamente en "ConnectionStrings__Connection" de tus Variables de Entorno
 var connectionString = builder.Configuration.GetConnectionString("Connection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
@@ -68,9 +67,9 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// --- 7. MIDDLEWARES (Orden Correcto para .NET 8) ---
+// --- 7. MIDDLEWARES (Orden Crítico) ---
 
-// Swagger siempre al principio para diagnosticar
+// Swagger siempre disponible para pruebas directas
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -78,12 +77,13 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty;
 });
 
+// Habilitar redirección a HTTPS (Fundamental para producción)
 app.UseHttpsRedirection();
 
-// UseRouting debe ir ANTES de UseCors
+// UseRouting SIEMPRE antes de UseCors
 app.UseRouting();
 
-// UseCors debe ir DESPUÉS de UseRouting
+// Aplicar la política de CORS configurada arriba
 app.UseCors("AllowAngular");
 
 app.UseAuthorization();
