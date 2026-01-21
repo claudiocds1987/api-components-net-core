@@ -20,7 +20,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("https://claudiocds1987.github.io") // Dominio específico de mi Front
+        policy.WithOrigins(
+            "https://claudiocds1987.github.io", // Produccion 
+            "http://localhost:5000", // Local Angular 
+            "https://localhost:5000") // En caso de usar SSL en local
               .AllowAnyHeader()
               .AllowAnyMethod()
               .SetIsOriginAllowedToAllowWildcardSubdomains();

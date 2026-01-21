@@ -19,27 +19,30 @@ public class MercadoPagoService : IMercadoPagoService
     private readonly IOrderRepository _orderRepository;
     private readonly string _baseUrl; // Variable para almacenar la URL base
 
-
     public MercadoPagoService(IConfiguration configuration, IOrderRepository orderRepository)
     {
         _configuration = configuration;
         _orderRepository = orderRepository;
 
-        // 1. PARCHE DE SEGURIDAD (Obligatorio para servidores compartidos)
-        System.Net.ServicePointManager.SecurityProtocol =
-            System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls13;
-
-        // 2. LECTURA DIRECTA DEL SISTEMA (Bypass de IConfiguration)
-        // Esto lee la variable exactamente como la escribiste en el panel verde
+        // 1. Intenta leer de Variable de Entorno (MonsterASP)
         var token = Environment.GetEnvironmentVariable("MercadoPago__AccessToken");
         var baseUrl = Environment.GetEnvironmentVariable("MercadoPago__BaseUrl");
 
-        // 3. LOG DE DIAGNÓSTICO
+        // 2. Si es NULL (estás en local), lee del appsettings.json
         if (string.IsNullOrEmpty(token))
         {
-            // Si el token sigue siendo null, esto aparecerá en "ApplicationLog" del panel
-            Console.WriteLine("CRÍTICO: El token leído por Environment es NULL");
-            throw new Exception("AccessToken no encontrado en el sistema.");
+            token = _configuration["MercadoPago:AccessToken"];
+        }
+
+        if (string.IsNullOrEmpty(baseUrl))
+        {
+            baseUrl = _configuration["MercadoPago:BaseUrl"];
+        }
+
+        // 3. Validación final
+        if (string.IsNullOrEmpty(token))
+        {
+            throw new Exception("AccessToken no encontrado en ningún proveedor de configuración.");
         }
 
         MercadoPagoConfig.AccessToken = token;
