@@ -5,6 +5,7 @@ using ApiComponents.Persistence.Repositories;
 using ApiComponents.Services;
 using MercadoPago.Client.Payment;
 using MercadoPago.Client.Preference;
+using System.Collections.Generic;
 using MercadoPago.Config;
 using MercadoPago.Error;
 using MercadoPago.Resource.Preference;
@@ -65,7 +66,6 @@ public class MercadoPagoService : IMercadoPagoService
         // 2. Guardamos en la DB para que se genere el Id numérico
         await _orderRepository.AddAsync(order);
         // Ahora 'order.Id' ya tiene el número (ej: 1, 2, 3...) asignado por SQL Express
-
         var request = new PreferenceRequest
         {
             Items = cart.Items.Select(item => new PreferenceItemRequest
@@ -78,16 +78,14 @@ public class MercadoPagoService : IMercadoPagoService
 
             BackUrls = new PreferenceBackUrlsRequest
             {
-                // Agregado de /#/ antes de la ruta para que Angular reconozca la ruta interna
                 Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
                 Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
                 Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result"
             },
+            
+
             AutoReturn = "approved",
-
-            // Usamos el ID numérico convertido a string para Mercado Pago
             ExternalReference = order.Id.ToString(),
-
             NotificationUrl = $"{_baseUrl}/api/MercadoPago/webhook",
         };
 
