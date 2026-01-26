@@ -38,13 +38,6 @@ public class MercadoPagoController : ControllerBase
         }
     }
 
-    //[HttpPost("create-preference")]
-    //public async Task<IActionResult> CreatePreference([FromBody] CartDto cart)
-    //{
-    //    var preferenceId = await _mpService.CreatePreferenceAsync(cart);
-    //    return Ok(new { id = preferenceId });
-    //}
-
     // WEBHOOK PROFESIONAL: Recibe notificaciones asincrónicas de MP
     [HttpPost("webhook")]
     public async Task<IActionResult> MercadoPagoWebhook([FromQuery] string topic, [FromQuery] string id)
@@ -83,18 +76,7 @@ public class MercadoPagoController : ControllerBase
         // Siempre devolvemos 200 OK para confirmar recepción a Mercado Pago
         return Ok();
     }
-    //[HttpPost("webhook")]
-    //public async Task<IActionResult> MercadoPagoWebhook([FromQuery] string topic, [FromQuery] string id)
-    //{
-    //    if (topic == "payment")
-    //    {
-    //        var status = await _mpService.GetPaymentStatusAsync(id);
-    //        // Aquí deberías buscar la orden y actualizarla
-    //        // Para eso, el 'external_reference' en la preferencia es clave
-    //    }
-    //    return Ok();
-    //}
-
+   
     // CONFIRMACIÓN SEGURA DESDE EL FRONTEND
     [HttpPost("confirm-payment")]
     public async Task<IActionResult> ConfirmPayment([FromBody] MercadoPagoConfirmationDto confirmation)
