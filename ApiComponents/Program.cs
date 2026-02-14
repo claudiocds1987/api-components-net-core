@@ -34,7 +34,8 @@ builder.Services.AddCors(options =>
 
 // --- 3. CONFIGURACIÓN DE JSON ---
 builder.Services.AddControllers()
-    .AddJsonOptions(options => {
+    .AddJsonOptions(options =>
+    {
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 

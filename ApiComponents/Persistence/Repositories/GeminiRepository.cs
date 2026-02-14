@@ -30,18 +30,27 @@ namespace ApiComponents.Persistence.Repositories
             {
                 var response = await _httpClient.PostAsJsonAsync(url, requestBody);
 
+                // Si la API responde con error (como el 429 de cuota agotada)
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorDetails = await response.Content.ReadAsStringAsync();
-                    return $"Error de API ({response.StatusCode}): {errorDetails}";
+
+                    // IMPORTANTE: Lanzamos excepción en lugar de retornar el string del error.
+                    // Esto permite que el Service lo capture en su bloque catch.
+                    throw new HttpRequestException($"GEMINI_ERROR|{(int)response.StatusCode}|{errorDetails}");
                 }
 
                 var result = await response.Content.ReadFromJsonAsync<GeminiResponse>();
                 return result?.Candidates?[0].Content?.Parts?[0].Text ?? "No se recibió respuesta del modelo.";
             }
+            catch (HttpRequestException)
+            {
+                // Re-lanzamos para que el servicio la maneje
+                throw;
+            }
             catch (Exception ex)
             {
-                return $"Error de red: {ex.Message}";
+                throw new Exception($"Error inesperado en GeminiRepository: {ex.Message}");
             }
         }
     }

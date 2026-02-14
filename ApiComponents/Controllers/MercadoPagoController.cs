@@ -76,7 +76,7 @@ public class MercadoPagoController : ControllerBase
         // Siempre devolvemos 200 OK para confirmar recepción a Mercado Pago
         return Ok();
     }
-   
+
     // CONFIRMACIÓN SEGURA DESDE EL FRONTEND
     [HttpPost("confirm-payment")]
     public async Task<IActionResult> ConfirmPayment([FromBody] MercadoPagoConfirmationDto confirmation)

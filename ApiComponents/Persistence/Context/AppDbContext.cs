@@ -11,9 +11,9 @@ namespace ApiComponents.Persistence.Context
         }
 
         // Constructor para inicalizar la base de datos
-        public AppDbContext(DbContextOptions<AppDbContext> options): base(options)
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
-            
+
         }
 
         public DbSet<Employee> Employees { get; set; }
