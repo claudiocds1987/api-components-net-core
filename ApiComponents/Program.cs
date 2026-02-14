@@ -21,8 +21,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngular", policy =>
     {
         policy.WithOrigins(
-            "https://claudiocds1987.github.io", // Produccion 
-            "http://localhost:5000", // Local Angular 
+            "https://claudiocds1987.github.io", // Produccion github pages
+            "http://localhost:4200", //Puerto estándar de Angular
+            "https://localhost:4200",
+            "http://localhost:5000", // Puerto Local e-commerce-v20 Angular 
             "https://localhost:5000") // En caso de usar SSL en local
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -55,6 +57,8 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
+builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 
 // --- 6. SWAGGER ---
 builder.Services.AddEndpointsApiExplorer();
