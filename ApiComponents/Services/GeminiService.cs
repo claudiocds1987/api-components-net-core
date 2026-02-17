@@ -74,9 +74,9 @@ namespace ApiComponents.Services
         public async Task<string> AnalyzeSearchAsync(string text)
         {
             var prompt = $@"Analiza la pregunta del usuario y extrae exclusivamente el NOMBRE del producto o marca que busca.
-    Usuario: '{text}'
-    Responde SOLO un JSON: {{""busqueda"": ""valor""}}
-    Ejemplo: 'tienes algo de essence?' -> {{""busqueda"": ""essence""}}";
+                         Usuario: '{text}'
+                         Responde SOLO un JSON: {{""busqueda"": ""valor""}}
+                         Ejemplo: 'tienes algo de essence?' -> {{""busqueda"": ""essence""}}";
 
             return await _aiRepo.GenerateTextAsync(prompt);
         }
