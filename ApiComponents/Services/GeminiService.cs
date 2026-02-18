@@ -59,6 +59,7 @@ namespace ApiComponents.Services
 
             var promptNormalizado = Normalizar(preguntaUsuario);
 
+
             // Buscar productos cuyo título coincida exactamente (normalizado)
             var productosPorTitulo = allProducts
                 .Where(p => Normalizar(p.Title) == promptNormalizado)
@@ -70,6 +71,20 @@ namespace ApiComponents.Services
                 {
                     Response = "¡Sí, por supuesto! Aquí tienes el producto encontrado:",
                     Products = productosPorTitulo
+                };
+            }
+
+            // 1.5. Búsqueda por tags (normalizado, contiene)
+            var productosPorTag = allProducts
+                .Where(p => p.Tags != null && p.Tags.Any(tag => promptNormalizado.Contains(Normalizar(tag)) || Normalizar(tag).Contains(promptNormalizado)))
+                .ToList();
+
+            if (productosPorTag.Any())
+            {
+                return new GeminiChatResponseDto
+                {
+                    Response = "¡Sí, por supuesto! Aquí tienes productos relacionados:",
+                    Products = productosPorTag
                 };
             }
 

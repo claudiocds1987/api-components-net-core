@@ -19,5 +19,6 @@
         public string Brand { get; set; } = string.Empty;
         public string Thumbnail { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty; // Agregado para búsquedas por categoría
+        public List<string> Tags { get; set; } = new(); // Agregado para búsqueda por tags
     }
 }
