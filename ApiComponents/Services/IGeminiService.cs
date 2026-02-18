@@ -6,6 +6,6 @@ namespace ApiComponents.Services
     {
         Task<string> GetVendedorAnswerAsync(GeminiProductRequestDto request);
         Task<string> AnalyzeSearchAsync(string text);
-        Task<string> ConsultarConCatalogoAsync(string preguntaUsuario);
+        Task<GeminiChatResponseDto> ConsultarConCatalogoAsync(string preguntaUsuario);
     }
 }

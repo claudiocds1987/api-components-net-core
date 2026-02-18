@@ -25,7 +25,7 @@ namespace ApiComponents.Controllers
             // Llamamos al nuevo método que integra DummyJSON + Gemini
             var response = await _geminiService.ConsultarConCatalogoAsync(request.Prompt);
 
-            return Ok(new { response });
+            return Ok(response); // Ahora devuelve el objeto completo
         }
 
         // Mantenemos este por si quieres usarlo para análisis de texto puro

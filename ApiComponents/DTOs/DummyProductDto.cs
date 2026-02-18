@@ -17,5 +17,7 @@
         public int Stock { get; set; } // Agregado
         public double Rating { get; set; } // Agregado
         public string Brand { get; set; } = string.Empty;
+        public string Thumbnail { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty; // Agregado para búsquedas por categoría
     }
 }
