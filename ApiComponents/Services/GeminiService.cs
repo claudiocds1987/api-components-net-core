@@ -20,24 +20,23 @@ namespace ApiComponents.Services
             _httpClient = httpClient;
         }
 
-        public async Task<GeminiChatResponseDto> ConsultarConCatalogoAsync(string preguntaUsuario)
+        public async Task<GeminiChatResponseDto> QueryCatalogAsync(string userQuestion)
         {
             // 1. Descargar todo el catálogo
             var allProductsUrl = "https://dummyjson.com/products?limit=100";
             var allProductsResult = await _httpClient.GetFromJsonAsync<DummyProductResponseDto>(allProductsUrl);
             var allProducts = allProductsResult?.Products ?? new List<DummyProductDto>();
 
-            string lowerQuery = preguntaUsuario.ToLower();
-            var sinonimosFragancias = new[] {
+            string lowerQuery = userQuestion.ToLower();
+            var synonymsFragrances = new[] {
                 "fragancia", "fragancias", "perfume", "perfumes", "aroma", "aromas",
                 "oler bien", "buen aroma", "buen olor", "aromatizar", "fragante", "esencia"
             };
-            var sinonimosMaquillaje = new[] { "maquillaje", "makeup" };
-            var sinonimosSkincare = new[] { "skincare", "skin-care", "cuidado de la piel" };
-            var sinonimosOfertas = new[] { "oferta", "ofertas", "descuento", "descuentos", "mejor precio" };
+            var synonymsMakeup = new[] { "maquillaje", "makeup" };
+            var synonymsSkincare = new[] { "skincare", "skin-care", "cuidado de la piel" };
+            var synonymsOffers = new[] { "oferta", "ofertas", "descuento", "descuentos", "mejor precio" };
 
-            // Lista de categorías reales del catálogo
-            var categoriasCatalogo = new[]
+            var catalogCategories = new[]
             {
                 "beauty", "fragrances", "furniture", "groceries", "home-decoration", "kitchen-accessories",
                 "laptops", "mens-shirts", "mens-shoes", "mens-watches", "mobile-accessories", "motorcycle",
@@ -45,86 +44,80 @@ namespace ApiComponents.Services
                 "womens-bags", "womens-dresses", "womens-jewellery", "womens-shoes", "womens-watches"
             };
 
-            List<DummyProductDto> productos = new();
-            string categoriaDetectada = "";
-            bool esOferta = sinonimosOfertas.Any(s => lowerQuery.Contains(s));
+            List<DummyProductDto> products = new();
+            string detectedCategory = "";
+            bool isOffer = synonymsOffers.Any(s => lowerQuery.Contains(s));
 
-            // 1. Búsqueda por coincidencia exacta de título (normalizado)
-            string Normalizar(string s) =>
+            string Normalize(string s) =>
                 s.ToLower()
                  .Replace("-", "")
                  .Replace(" ", "")
                  .Replace("á", "a").Replace("é", "e").Replace("í", "i").Replace("ó", "o").Replace("ú", "u")
                  .Replace("?", "").Replace(".", "").Replace(",", "");
 
-            var promptNormalizado = Normalizar(preguntaUsuario);
+            var normalizedPrompt = Normalize(userQuestion);
 
-
-            // Buscar productos cuyo título coincida exactamente (normalizado)
-            var productosPorTitulo = allProducts
-                .Where(p => Normalizar(p.Title) == promptNormalizado)
+            var productsByTitle = allProducts
+                .Where(p => Normalize(p.Title) == normalizedPrompt)
                 .ToList();
 
-            if (productosPorTitulo.Any())
+            if (productsByTitle.Any())
             {
                 return new GeminiChatResponseDto
                 {
-                    Response = "¡Sí, por supuesto! Aquí tienes el producto encontrado:",
-                    Products = productosPorTitulo
+                    Response = "Yes, of course! Here is the product found:",
+                    Products = productsByTitle
                 };
             }
 
-            // 1.5. Búsqueda por tags (normalizado, contiene)
-            var productosPorTag = allProducts
-                .Where(p => p.Tags != null && p.Tags.Any(tag => promptNormalizado.Contains(Normalizar(tag)) || Normalizar(tag).Contains(promptNormalizado)))
+            var productsByTag = allProducts
+                .Where(p => p.Tags != null && p.Tags.Any(tag => normalizedPrompt.Contains(Normalize(tag)) || Normalize(tag).Contains(normalizedPrompt)))
                 .ToList();
 
-            if (productosPorTag.Any())
+            if (productsByTag.Any())
             {
                 return new GeminiChatResponseDto
                 {
-                    Response = "¡Sí, por supuesto! Aquí tienes productos relacionados:",
-                    Products = productosPorTag
+                    Response = "Yes, of course! Here are related products:",
+                    Products = productsByTag
                 };
             }
 
-            // 2. Detección automática de categoría por coincidencia robusta y normalizada en el prompt (prompt completo)
-            string categoriaPrompt = categoriasCatalogo.FirstOrDefault(cat =>
-                promptNormalizado.Contains(Normalizar(cat)) ||
-                Normalizar(cat).Contains(promptNormalizado) ||
-                promptNormalizado.Contains(Normalizar(cat).TrimEnd('s')) || // singular
-                promptNormalizado.Contains(Normalizar(cat) + "s")          // plural
+            string categoryPrompt = catalogCategories.FirstOrDefault(cat =>
+                normalizedPrompt.Contains(Normalize(cat)) ||
+                Normalize(cat).Contains(normalizedPrompt) ||
+                normalizedPrompt.Contains(Normalize(cat).TrimEnd('s')) ||
+                normalizedPrompt.Contains(Normalize(cat) + "s")
             );
 
-            if (!string.IsNullOrEmpty(categoriaPrompt))
+            if (!string.IsNullOrEmpty(categoryPrompt))
             {
-                productos = allProducts.Where(p => Normalizar(p.Category) == Normalizar(categoriaPrompt)).ToList();
-                categoriaDetectada = categoriaPrompt.Replace("-", " ");
+                products = allProducts.Where(p => Normalize(p.Category) == Normalize(categoryPrompt)).ToList();
+                detectedCategory = categoryPrompt.Replace("-", " ");
             }
-            else if (sinonimosFragancias.Any(s => lowerQuery.Contains(s)))
+            else if (synonymsFragrances.Any(s => lowerQuery.Contains(s)))
             {
-                productos = allProducts.Where(p => p.Category.ToLower() == "fragrances").ToList();
-                categoriaDetectada = "fragancias";
+                products = allProducts.Where(p => p.Category.ToLower() == "fragrances").ToList();
+                detectedCategory = "fragancias";
             }
-            else if (sinonimosMaquillaje.Any(s => lowerQuery.Contains(s)))
+            else if (synonymsMakeup.Any(s => lowerQuery.Contains(s)))
             {
-                productos = allProducts.Where(p => p.Category.ToLower() == "beauty").ToList();
-                categoriaDetectada = "maquillaje";
+                products = allProducts.Where(p => p.Category.ToLower() == "beauty").ToList();
+                detectedCategory = "maquillaje";
             }
-            else if (sinonimosSkincare.Any(s => lowerQuery.Contains(s)))
+            else if (synonymsSkincare.Any(s => lowerQuery.Contains(s)))
             {
-                productos = allProducts.Where(p => p.Category.ToLower().Contains("skin")) .ToList();
-                categoriaDetectada = "skincare";
+                products = allProducts.Where(p => p.Category.ToLower().Contains("skin")) .ToList();
+                detectedCategory = "skincare";
             }
-            else if (esOferta)
+            else if (isOffer)
             {
-                productos = allProducts.OrderByDescending(p => p.DiscountPercentage).Take(10).ToList();
-                categoriaDetectada = "ofertas";
+                products = allProducts.OrderByDescending(p => p.DiscountPercentage).Take(10).ToList();
+                detectedCategory = "ofertas";
             }
             else
             {
-                // Búsqueda general en title, description, category, brand
-                productos = allProducts.Where(p =>
+                products = allProducts.Where(p =>
                     lowerQuery.Split(' ').Any(q =>
                         p.Title.ToLower().Contains(q) ||
                         p.Description.ToLower().Contains(q) ||
@@ -132,45 +125,41 @@ namespace ApiComponents.Services
                         p.Brand.ToLower().Contains(q)
                     )
                 ).ToList();
-                categoriaDetectada = productos.FirstOrDefault()?.Category ?? "producto";
+                detectedCategory = products.FirstOrDefault()?.Category ?? "producto";
             }
 
-            // 3. Lógica de metadata dinámica
-            foreach (var prod in productos)
+            foreach (var prod in products)
             {
                 var meta = "";
-                if (prod.Stock < 5) meta += " ⚠️ ¡Últimas unidades!";
-                if (prod.Rating > 4.5) meta += " ⭐ Favorito de los clientes";
+                if (prod.Stock < 5) meta += " ⚠️ Last units!";
+                if (prod.Rating > 4.5) meta += " ⭐ Customer favorite";
                 if (!string.IsNullOrWhiteSpace(meta))
                     prod.Description = prod.Description.Trim() + meta;
             }
 
-            // 4. Lógica de respuesta
-            if (productos.Any())
+            if (products.Any())
             {
-                string responseMsg = esOferta
-                    ? "¡Claro! Estos son nuestros productos con los mejores descuentos hoy:"
-                    : $"¡Sí, por supuesto! Aquí tienes las opciones de {categoriaDetectada.ToLower()}:";
-                // Ordenar por descuento si es oferta
-                if (esOferta)
-                    productos = productos.OrderByDescending(p => p.DiscountPercentage).ToList();
+                string responseMsg = isOffer
+                    ? "Of course! Here are our products with the best discounts today:"
+                    : $"Yes, of course! Here are the options for {detectedCategory.ToLower()}:";
+                if (isOffer)
+                    products = products.OrderByDescending(p => p.DiscountPercentage).ToList();
                 return new GeminiChatResponseDto
                 {
                     Response = responseMsg,
-                    Products = productos
+                    Products = products
                 };
             }
             else
             {
-                // Sugerir categoría relacionada si no hay resultados
-                string sugerir = "fragancias";
-                if (sinonimosFragancias.Any(s => lowerQuery.Contains(s))) sugerir = "maquillaje";
-                else if (sinonimosMaquillaje.Any(s => lowerQuery.Contains(s))) sugerir = "skincare";
-                else if (sinonimosSkincare.Any(s => lowerQuery.Contains(s))) sugerir = "fragancias";
-                else if (esOferta) sugerir = "fragancias";
+                string suggest = "fragancias";
+                if (synonymsFragrances.Any(s => lowerQuery.Contains(s))) suggest = "maquillaje";
+                else if (synonymsMakeup.Any(s => lowerQuery.Contains(s))) suggest = "skincare";
+                else if (synonymsSkincare.Any(s => lowerQuery.Contains(s))) suggest = "fragancias";
+                else if (isOffer) suggest = "fragancias";
                 return new GeminiChatResponseDto
                 {
-                    Response = $"No encontré {preguntaUsuario} en el catálogo. ¿Te gustaría ver {sugerir}?",
+                    Response = $"No products found for {userQuestion} in the catalog. Would you like to see {suggest}?",
                     Products = new List<DummyProductDto>()
                 };
             }
@@ -183,11 +172,11 @@ namespace ApiComponents.Services
             return await _aiRepo.GenerateTextAsync(prompt);
         }
 
-        public async Task<string> GetVendedorAnswerAsync(GeminiProductRequestDto request)
+        public async Task<string> GetSellerAnswerAsync(GeminiProductRequestDto request)
         {
             var productData = JsonSerializer.Serialize(request.Context);
-            var prompt = $"Producto: {request.Title}. Datos: {productData}. Pregunta: {request.Question}. " +
-                         "Responde de forma vendedora en 2 frases máximo.";
+            var prompt = $"Product: {request.Title}. Data: {productData}. Question: {request.Question}. " +
+                         "Respond as a seller in a maximum of 2 sentences.";
             return await _aiRepo.GenerateTextAsync(prompt);
         }
     }

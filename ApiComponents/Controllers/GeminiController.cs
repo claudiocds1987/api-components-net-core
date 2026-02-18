@@ -20,12 +20,10 @@ namespace ApiComponents.Controllers
         public async Task<IActionResult> Ask([FromBody] GeminiSimpleRequestDto request)
         {
             if (string.IsNullOrEmpty(request.Prompt))
-                return BadRequest("La pregunta no puede estar vacía.");
+                return BadRequest("The question cannot be empty.");
 
-            // Llamamos al nuevo método que integra DummyJSON + Gemini
-            var response = await _geminiService.ConsultarConCatalogoAsync(request.Prompt);
-
-            return Ok(response); // Ahora devuelve el objeto completo
+            var response = await _geminiService.QueryCatalogAsync(request.Prompt);
+            return Ok(response);
         }
 
         // Mantenemos este por si quieres usarlo para análisis de texto puro
@@ -39,10 +37,10 @@ namespace ApiComponents.Controllers
 
         // Nuevo: Un endpoint específico para cuando el usuario ya está viendo 
         // un producto puntual
-        [HttpPost("vendedor-experto")]
-        public async Task<IActionResult> VendedorExperto([FromBody] GeminiProductRequestDto request)
+        [HttpPost("seller-expert")]
+        public async Task<IActionResult> SellerExpert([FromBody] GeminiProductRequestDto request)
         {
-            var response = await _geminiService.GetVendedorAnswerAsync(request);
+            var response = await _geminiService.GetSellerAnswerAsync(request);
             return Ok(new { response });
         }
     }
