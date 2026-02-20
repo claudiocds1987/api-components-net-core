@@ -65,7 +65,7 @@ namespace ApiComponents.Services
             {
                 return new GeminiChatResponseDto
                 {
-                    Response = "Yes, of course! Here is the product found:",
+                    Response = "Si, claro! Aquí esta el producto encontrado:",
                     Products = productsByTitle
                 };
             }
@@ -78,7 +78,7 @@ namespace ApiComponents.Services
             {
                 return new GeminiChatResponseDto
                 {
-                    Response = "Yes, of course! Here are related products:",
+                    Response = "Si, claro! Aquí los productos relacionados a tu consulta:",
                     Products = productsByTag
                 };
             }
@@ -140,8 +140,8 @@ namespace ApiComponents.Services
             if (products.Any())
             {
                 string responseMsg = isOffer
-                    ? "Of course! Here are our products with the best discounts today:"
-                    : $"Yes, of course! Here are the options for {detectedCategory.ToLower()}:";
+                    ? "¡Claro! Aquí están nuestros productos con las mejores ofertas del día:"
+                    : $"Si, claro! Aquí estan las opciones para {detectedCategory.ToLower()}:";
                 if (isOffer)
                     products = products.OrderByDescending(p => p.DiscountPercentage).ToList();
                 return new GeminiChatResponseDto
@@ -159,7 +159,7 @@ namespace ApiComponents.Services
                 else if (isOffer) suggest = "fragancias";
                 return new GeminiChatResponseDto
                 {
-                    Response = $"No products found for {userQuestion} in the catalog. Would you like to see {suggest}?",
+                    Response = $"No se encontró resultado para {userQuestion} en el catalogo. Te gustaría ver otro producto?",
                     Products = new List<DummyProductDto>()
                 };
             }
