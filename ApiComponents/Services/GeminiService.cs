@@ -107,7 +107,7 @@ namespace ApiComponents.Services
             }
             else if (synonymsSkincare.Any(s => lowerQuery.Contains(s)))
             {
-                products = allProducts.Where(p => p.Category.ToLower().Contains("skin")) .ToList();
+                products = allProducts.Where(p => p.Category.ToLower().Contains("skin")).ToList();
                 detectedCategory = "skincare";
             }
             else if (isOffer)
@@ -174,10 +174,38 @@ namespace ApiComponents.Services
 
         public async Task<string> GetSellerAnswerAsync(GeminiProductRequestDto request)
         {
-            var productData = JsonSerializer.Serialize(request.Context);
-            var prompt = $"Product: {request.Title}. Data: {productData}. Question: {request.Question}. " +
-                         "Respond as a seller in a maximum of 2 sentences.";
-            return await _aiRepo.GenerateTextAsync(prompt);
+            try
+            {
+                // 1. Consultamos el endpoint de producto específico en DummyJSON
+                var productUrl = $"https://dummyjson.com/products/{request.ProductId}";
+                var productData = await _httpClient.GetStringAsync(productUrl);
+
+                // 2. Prompt Estratégico
+                // pasamos el JSON entero a Gemini. Él sabe mapear "stock" a "existencias" 
+                // o "dimensions" a "medidas" automáticamente.
+                var prompt = $@"Eres un experto vendedor de ecommerce. 
+                             Tu conocimiento actual es este producto en formato JSON: {productData}.
+        
+                            REGLAS DE RESPUESTA:
+                                - Si el usuario pregunta en español, responde en español. If English, answer in English.
+                                - Responde únicamente basado en los datos del JSON proporcionado.
+                                - Si preguntan por 'características', haz un resumen breve de: descripción, dimensiones, garantía y políticas de devolución.
+                                - Sé profesional, amable y no inventes datos que no estén en el JSON.
+                                - Máximo 3 oraciones.
+
+                            PREGUNTA DEL USUARIO: {request.UserMessage}";
+
+                // 3. Enviamos el prompt al Repositorio que ya tienes configurado
+                var response = await _aiRepo.GenerateTextAsync(prompt);
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                // Loguear el error si es necesario
+                return "Lo siento, hubo un problema al obtener los detalles del producto. ¿Puedes intentar de nuevo?";
+            }
         }
+
     }
 }
