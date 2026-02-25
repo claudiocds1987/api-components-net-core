@@ -18,7 +18,7 @@ namespace ApiComponents.Services
 
         public async Task<GeminiChatResponseDto> QueryCatalogAsync(string userQuestion)
         {
-            // 1. Descargar catálogo completo (Aumentamos a 200 para capturar IDs altos como relojes de mujer)
+            // 1. Descargar catálogo completo
             var allProductsUrl = "https://dummyjson.com/products?limit=200";
             var allProductsResult = await _httpClient.GetFromJsonAsync<DummyProductResponseDto>(allProductsUrl);
             var allProducts = allProductsResult?.Products ?? new List<DummyProductDto>();
@@ -27,9 +27,9 @@ namespace ApiComponents.Services
             string intentCategory = await GetIntentCategoryFromAI(userQuestion);
 
             List<DummyProductDto> products = new();
-            string responseMsg = "¡Si, claro! Aquí están los productos:";
+            string responseMsg = $"¡Si, claro! Aquí tienes las opciones para {userQuestion}:";
 
-            // Función de normalización para búsquedas por título exacto
+            // Función de normalización
             string Normalize(string s) =>
                 s.ToLower()
                  .Replace("-", "").Replace(" ", "")
@@ -46,18 +46,31 @@ namespace ApiComponents.Services
             }
             else if (intentCategory != "NONE")
             {
-                // FILTRO MEJORADO: Usamos StringComparison para ser más robustos.
-                // Si intentCategory es "watches", traerá "mens-watches" y "womens-watches".
-                products = allProducts
-                    .Where(p => p.category.Contains(intentCategory, StringComparison.OrdinalIgnoreCase) ||
-                                (p.tags != null && p.tags.Any(t => t.Contains(intentCategory, StringComparison.OrdinalIgnoreCase))))
-                    .ToList();
+                // FIX DE GÉNERO: 
+                // Si la intención es específica (contiene 'mens-' o 'womens-'), hacemos match EXACTO.
+                // Si es general (ej: 'watches'), usamos Contains para traer ambos.
+                bool isSpecific = intentCategory.StartsWith("mens-") || intentCategory.StartsWith("womens-");
 
-                responseMsg = $"¡Si, claro! Aquí tienes las opciones para {userQuestion}:";
+                products = allProducts
+                    .Where(p =>
+                    {
+                        if (isSpecific)
+                        {
+                            // Comparación exacta para evitar mezcla de géneros
+                            return p.category.Equals(intentCategory, StringComparison.OrdinalIgnoreCase);
+                        }
+                        else
+                        {
+                            // Comparación general (ej: 'watches' trae mens-watches y womens-watches)
+                            return p.category.Contains(intentCategory, StringComparison.OrdinalIgnoreCase) ||
+                                   (p.tags != null && p.tags.Any(t => t.Contains(intentCategory, StringComparison.OrdinalIgnoreCase)));
+                        }
+                    })
+                    .ToList();
             }
             else
             {
-                // Búsqueda de respaldo por texto si la IA no detectó una categoría clara
+                // Búsqueda de respaldo por texto
                 products = allProducts.Where(p =>
                     Normalize(p.title).Contains(normalizedPrompt) ||
                     p.description.ToLower().Contains(userQuestion.ToLower()) ||
@@ -65,7 +78,7 @@ namespace ApiComponents.Services
                 ).ToList();
             }
 
-            // 4. Post-procesamiento: Añadir etiquetas (Badges) de Stock y Rating
+            // 4. Post-procesamiento: Badges
             foreach (var prod in products)
             {
                 var meta = "";
@@ -91,7 +104,6 @@ namespace ApiComponents.Services
                 Products = new List<DummyProductDto>()
             };
         }
-
         private async Task<string> GetIntentCategoryFromAI(string userText)
         {
             var prompt =
