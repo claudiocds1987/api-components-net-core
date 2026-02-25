@@ -41,7 +41,7 @@ namespace ApiComponents.Services
             // 3. Lógica de Filtrado Basada en la Intención
             if (intentCategory == "OFFERS")
             {
-                products = allProducts.OrderByDescending(p => p.DiscountPercentage).Take(10).ToList();
+                products = allProducts.OrderByDescending(p => p.discountPercentage).Take(10).ToList();
                 responseMsg = "¡Claro! Aquí tienes nuestras mejores ofertas del día:";
             }
             else if (intentCategory != "NONE")
@@ -49,8 +49,8 @@ namespace ApiComponents.Services
                 // FILTRO MEJORADO: Usamos StringComparison para ser más robustos.
                 // Si intentCategory es "watches", traerá "mens-watches" y "womens-watches".
                 products = allProducts
-                    .Where(p => p.Category.Contains(intentCategory, StringComparison.OrdinalIgnoreCase) ||
-                                (p.Tags != null && p.Tags.Any(t => t.Contains(intentCategory, StringComparison.OrdinalIgnoreCase))))
+                    .Where(p => p.category.Contains(intentCategory, StringComparison.OrdinalIgnoreCase) ||
+                                (p.tags != null && p.tags.Any(t => t.Contains(intentCategory, StringComparison.OrdinalIgnoreCase))))
                     .ToList();
 
                 responseMsg = $"¡Si, claro! Aquí tienes las opciones para {userQuestion}:";
@@ -59,9 +59,9 @@ namespace ApiComponents.Services
             {
                 // Búsqueda de respaldo por texto si la IA no detectó una categoría clara
                 products = allProducts.Where(p =>
-                    Normalize(p.Title).Contains(normalizedPrompt) ||
-                    p.Description.ToLower().Contains(userQuestion.ToLower()) ||
-                    p.Brand.ToLower().Contains(userQuestion.ToLower())
+                    Normalize(p.title).Contains(normalizedPrompt) ||
+                    p.description.ToLower().Contains(userQuestion.ToLower()) ||
+                    p.brand.ToLower().Contains(userQuestion.ToLower())
                 ).ToList();
             }
 
@@ -69,10 +69,10 @@ namespace ApiComponents.Services
             foreach (var prod in products)
             {
                 var meta = "";
-                if (prod.Stock < 5) meta += " ⚠️ Last units!";
-                if (prod.Rating > 4.5) meta += " ⭐ Customer favorite";
+                if (prod.stock < 5) meta += " ⚠️ Last units!";
+                if (prod.rating > 4.5) meta += " ⭐ Customer favorite";
                 if (!string.IsNullOrWhiteSpace(meta))
-                    prod.Description = prod.Description.Trim() + " " + meta;
+                    prod.description = prod.description.Trim() + " " + meta;
             }
 
             // 5. Respuesta Final
