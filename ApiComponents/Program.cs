@@ -25,9 +25,9 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "https://claudiocds1987.github.io", // Produccion github pages
-            "http://localhost:4200", //Puerto estándar de Angular
+            "http://localhost:4200",  // Puerto estándar de Angular
             "https://localhost:4200",
-            "http://localhost:5000", // Puerto Local e-commerce-v20 Angular 
+            "http://localhost:5000",  // Puerto Local e-commerce-v20 Angular 
             "https://localhost:5000") // En caso de usar SSL en local
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -54,31 +54,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         );
     }));
 
-// --- 5. INYECCIÓN DE DEPENDENCIAS ---
+// --- 5. INYECCIÓN DE DEPENDENCIAS (LIMPIA) ---
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
 builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
 builder.Services.AddHttpClient<IGeminiService, GeminiService>();
-builder.Services.AddHttpClient<IAuthService, AuthService>();
 
-// --- 6. SWAGGER ---
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "ApiComponents API",
-        Version = "v1",
-        Description = "API de Componentes - .NET 8 con Variables de Entorno"
-    });
-});
-
-// 1. Configurar JWT
+// --- 6. CONFIGURAR JWT ---
 var jwtKey = builder.Configuration["Jwt:Key"];
+// Validación de seguridad para evitar el crash 500.30 si falta la key
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new Exception("JWT Key is missing in configuration!");
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -90,20 +87,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 
-// 2. Inyección de dependencias
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-
+// --- 7. SWAGGER ---
+// Swagger siempre disponible para pruebas directas
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ApiComponents API",
+        Version = "v1",
+        Description = "API de Componentes - .NET 8"
+    });
+});
 
 var app = builder.Build();
 
-// --- 7. MIDDLEWARES (Orden Crítico) ---
-
-// Swagger siempre disponible para pruebas directas
+// --- 8. MIDDLEWARES (Orden Crítico) ---
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -111,17 +114,11 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty;
 });
 
-// Habilitar redirección a HTTPS (Fundamental para producción)
 app.UseHttpsRedirection();
-
-// UseRouting SIEMPRE antes de UseCors
 app.UseRouting();
-
-// Aplicar la política de CORS configurada arriba
 app.UseCors("AllowAngular");
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();
