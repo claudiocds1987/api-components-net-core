@@ -18,22 +18,50 @@ var builder = WebApplication.CreateBuilder(args);
 // Obligatorio para que MonsterASP pueda hablar con los servidores de Mercado Pago
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 
-// --- 2. CONFIGURACIÓN DE CORS ---
+// --- 2. CONFIGURACIÓN DE CORS DINÁMICA ---
+var allowedOrigins = builder.Configuration["AllowedOrigins"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins(
-            "https://claudiocds1987.github.io", // Produccion github pages
-            "http://localhost:4200",  // Puerto estándar de Angular
-            "https://localhost:4200",
-            "http://localhost:5000",  // Puerto Local e-commerce-v20 Angular 
-            "https://localhost:5000") // En caso de usar SSL en local
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .SetIsOriginAllowedToAllowWildcardSubdomains();
+        if (builder.Environment.IsDevelopment())
+        {
+            // EN LOCAL: Aceptamos todo, pero solo una vez.
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            // EN PRODUCCIÓN: Filtramos por tu GitHub
+            if (!string.IsNullOrEmpty(allowedOrigins))
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            }
+        }
     });
 });
+
+
+// forma de aNTES
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAngular", policy =>
+//    {
+//        policy.WithOrigins(
+//            "https://claudiocds1987.github.io", // Produccion github pages
+//            "http://localhost:4200",  // Puerto estándar de Angular
+//            "https://localhost:4200",
+//            "http://localhost:5000",  // Puerto Local e-commerce-v20 Angular 
+//            "https://localhost:5000") // En caso de usar SSL en local
+//              .AllowAnyHeader()
+//              .AllowAnyMethod()
+//              .SetIsOriginAllowedToAllowWildcardSubdomains();
+//    });
+//});
 
 // --- 3. CONFIGURACIÓN DE JSON ---
 builder.Services.AddControllers()
