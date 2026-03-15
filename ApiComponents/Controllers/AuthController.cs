@@ -3,46 +3,31 @@ using ApiComponents.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ApiComponents.Controllers
+namespace ApiComponents.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController(IAuthService authService) : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
-        private readonly IAuthService _authService;
+        var result = await authService.Register(registerDto);
+        if (result == null)
+            return BadRequest(new { message = "El usuario o el correo ya están registrados." });
 
-        public AuthController(IAuthService authService)
-        {
-            _authService = authService;
-        }
+        return Ok(result);
+    }
 
-        [HttpPost("register")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
-        {
-            var result = await _authService.Register(registerDto);
+    [HttpPost("login")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+    {
+        var result = await authService.Login(loginDto.username, loginDto.password);
+        if (result == null)
+            return Unauthorized(new { message = "Usuario o contraseña incorrectos." });
 
-            if (result == null)
-            {
-                return BadRequest(new { message = "El usuario o el correo ya están registrados." });
-            }
-
-            return Ok(result);
-        }
-
-        [HttpPost("login")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
-        {
-            var result = await _authService.Login(loginDto.username, loginDto.password);
-
-            if (result == null)
-            {
-                // Devolvemos 401 para que tu interceptor de Angular capture el error
-                return Unauthorized(new { message = "Usuario o contraseña incorrectos." });
-            }
-
-            return Ok(result);
-        }
+        return Ok(result);
     }
 }

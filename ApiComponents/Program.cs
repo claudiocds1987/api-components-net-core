@@ -1,5 +1,6 @@
 using ApiComponents.Persistence.Context;
 using ApiComponents.Persistence.Repositories;
+using ApiComponents.Persistence.Seed;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -34,7 +35,7 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            // EN PRODUCCIÓN: Filtramos por tu GitHub
+            // EN PRODUCCIÓN: Filtramos para GitHub
             if (!string.IsNullOrEmpty(allowedOrigins))
             {
                 policy.WithOrigins(allowedOrigins)
@@ -45,28 +46,15 @@ builder.Services.AddCors(options =>
     });
 });
 
-
-// forma de aNTES
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAngular", policy =>
-//    {
-//        policy.WithOrigins(
-//            "https://claudiocds1987.github.io", // Produccion github pages
-//            "http://localhost:4200",  // Puerto estándar de Angular
-//            "https://localhost:4200",
-//            "http://localhost:5000",  // Puerto Local e-commerce-v20 Angular 
-//            "https://localhost:5000") // En caso de usar SSL en local
-//              .AllowAnyHeader()
-//              .AllowAnyMethod()
-//              .SetIsOriginAllowedToAllowWildcardSubdomains();
-//    });
-//});
-
 // --- 3. CONFIGURACIÓN DE JSON ---
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
+        // 1. Evita el error de ciclos infinitos al serializar relaciones
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+
+        // 2. Mantiene los nombres de las propiedades tal cual están en C# (id, title, price)
+        // en lugar de convertirlos a camelCase (ID, Title, Price) automáticamente.
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
@@ -82,19 +70,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         );
     }));
 
-// --- 5. INYECCIÓN DE DEPENDENCIAS (LIMPIA) ---
+// --- 5. INYECCIÓN DE DEPENDENCIAS rEPOSITORIOS ---
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-
+builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+// ---  INYECCIÓN DE DEPENDENCIAS sERVICIOS ---
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-
-builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
 builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IBrandService, BrandService>();
 
 // --- 6. CONFIGURAR JWT ---
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -150,6 +143,22 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// --- 9. SEED DATA ---
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<AppDbContext>();
+    try
+    {
+        // Esto ejecutará tanto categorías como marcas etc..
+        await DbSeeder.SeedAll(context);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error al cargar los datos iniciales: {ex.Message}");
+    }
+}
 
 app.Run();
 
