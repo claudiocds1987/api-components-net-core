@@ -16,52 +16,69 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
         using (var stream = file.OpenReadStream())
         using (var reader = ExcelReaderFactory.CreateReader(stream))
         {
-            reader.Read(); // Saltamos cabecera
+            reader.Read(); // Salta la cabecera (Fila 1)
 
             while (reader.Read())
             {
-                var title = reader.GetValue(1)?.ToString()?.Trim();
+                // El Título es la primera columna (índice 0)
+                var title = reader.GetValue(0)?.ToString()?.Trim();
+
+                // Validación de existencia usando el repositorio (asegúrate de aplicar .ToLower() en el Repo también)
                 if (string.IsNullOrEmpty(title) || await productRepo.ExistProduct(title)) continue;
 
-                // 1. Extraemos los IDs directamente del Excel
-                int catId = Convert.ToInt32(reader.GetValue(18)); // Columna S
-                int brId = Convert.ToInt32(reader.GetValue(19));  // Columna T
+                // --- ÍNDICES SEGÚN TU EXCEL ACTUAL ---
+                int catId = Convert.ToInt32(reader.GetValue(17)); // Columna R
+                int brId = Convert.ToInt32(reader.GetValue(18));  // Columna S
 
-                // 2. VALIDACIÓN PROFESIONAL: ¿Existen en mi base de datos?
-                var categoryExists = await context.ProductCategories.AnyAsync(c => c.id == catId);
-                var brandExists = await context.ProductBrands.AnyAsync(b => b.id == brId);
+                // Validaciones de existencia de IDs en la DB
+                if (!await context.ProductCategories.AnyAsync(c => c.id == catId))
+                    throw new Exception($"Error: La CategoryId {catId} no existe.");
 
-                if (!categoryExists)
-                    throw new Exception($"Error en producto '{title}': La CategoryId {catId} no existe.");
+                if (!await context.ProductBrands.AnyAsync(b => b.id == brId))
+                    throw new Exception($"Error: La BrandId {brId} no existe.");
 
-                if (!brandExists)
-                    throw new Exception($"Error en producto '{title}': La BrandId {brId} no existe.");
-
-                // 3. Si todo está bien, lo agregamos a la lista
-                productsToSave.Add(new Product
+                var product = new Product
                 {
-                    title = reader.GetValue(1)?.ToString()?.Trim() ?? string.Empty,
-                    description = reader.GetValue(2)?.ToString()?.Trim() ?? string.Empty,
-                    price = Convert.ToDecimal(reader.GetValue(3)),
-                    discountPercentage = Convert.ToDecimal(reader.GetValue(4)),
-                    rating = Convert.ToDecimal(reader.GetValue(5)),
-                    stock = Convert.ToInt32(reader.GetValue(6)),
-                    sku = reader.GetValue(7)?.ToString()?.Trim() ?? string.Empty,
-                    weight = Convert.ToDecimal(reader.GetValue(8)),
-                    width = Convert.ToDecimal(reader.GetValue(9)),
-                    height = Convert.ToDecimal(reader.GetValue(10)),
-                    depth = Convert.ToDecimal(reader.GetValue(11)),
-                    warrantyInformation = reader.GetValue(12)?.ToString()?.Trim() ?? string.Empty,
-                    shippingInformation = reader.GetValue(13)?.ToString()?.Trim() ?? string.Empty,
-                    availabilityStatus = reader.GetValue(14)?.ToString()?.Trim() ?? string.Empty,
-                    returnPolicy = reader.GetValue(15)?.ToString()?.Trim() ?? string.Empty,
-                    minimumOrderQuantity = Convert.ToInt32(reader.GetValue(16)),
-                    thumbnail = reader.GetValue(17)?.ToString()?.Trim() ?? string.Empty,
+                    title = title,                                                        // Columna A 
+                    description = reader.GetValue(1)?.ToString()?.Trim() ?? string.Empty, // Columna B
+                    price = Convert.ToDecimal(reader.GetValue(2)),                       // Columna C
+                    discountPercentage = Convert.ToDecimal(reader.GetValue(3)),          // Columna D
+                    rating = Convert.ToDecimal(reader.GetValue(4)),                      // Columna E
+                    stock = Convert.ToInt32(reader.GetValue(5)),                        // Columna F
+                    sku = reader.GetValue(6)?.ToString()?.Trim() ?? string.Empty,        // Columna G
+                    weight = Convert.ToDecimal(reader.GetValue(7)),
+                    width = Convert.ToDecimal(reader.GetValue(8)),
+                    height = Convert.ToDecimal(reader.GetValue(9)),
+                    depth = Convert.ToDecimal(reader.GetValue(10)),
+                    warrantyInformation = reader.GetValue(11)?.ToString()?.Trim() ?? string.Empty,
+                    shippingInformation = reader.GetValue(12)?.ToString()?.Trim() ?? string.Empty,
+                    availabilityStatus = reader.GetValue(13)?.ToString()?.Trim() ?? string.Empty,
+                    returnPolicy = reader.GetValue(14)?.ToString()?.Trim() ?? string.Empty,
+                    minimumOrderQuantity = Convert.ToInt32(reader.GetValue(15)),
+                    thumbnail = reader.GetValue(16)?.ToString()?.Trim() ?? string.Empty, // Columna Q
+                    categoryId = catId,
+                    brandId = brId
+                };
 
-                    // IDs estrictos que validaste previamente
-                    categoryId = catId, // Índice 18
-                    brandId = brId      // Índice 19
-                });
+                // Imágenes en Columna T (Índice 19)
+                var imagesRaw = reader.GetValue(19)?.ToString();
+                if (!string.IsNullOrWhiteSpace(imagesRaw))
+                {
+                    product.images = imagesRaw.Split(',')
+                        .Select(url => new ProductImage { imageUrl = url.Trim() })
+                        .ToList();
+                }
+
+                // Tags en Columna U (Índice 20)
+                var tagsRaw = reader.GetValue(20)?.ToString();
+                if (!string.IsNullOrWhiteSpace(tagsRaw))
+                {
+                    product.tags = tagsRaw.Split(',')
+                        .Select(tag => new ProductTag { tagName = tag.Trim() })
+                        .ToList();
+                }
+
+                productsToSave.Add(product);
             }
         }
 

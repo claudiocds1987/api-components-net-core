@@ -13,7 +13,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     }
 
     public async Task<bool> ExistProduct(string title)
-        => await db.Products.AnyAsync(p => p.title.Equals(title, StringComparison.OrdinalIgnoreCase));
+    => await db.Products.AnyAsync(p => EF.Functions.Like(p.title, title));
 
     public async Task<Product> GetProduct(int id) => await db.Products.FindAsync(id);
 
