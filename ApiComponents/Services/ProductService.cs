@@ -4,64 +4,61 @@ using ApiComponents.Persistence.Repositories;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
 
-namespace ApiComponents.Services
+namespace ApiComponents.Services;
+
+public class ProductService(IProductRepository productRepo, AppDbContext context) : IProductService
 {
-    // Usamos Constructor Principal (Sugerencia IDE0290)
-    public class ProductService(IProductRepository productRepo, AppDbContext context) : IProductService
+    public async Task ProcessExcelAsync(IFormFile file)
     {
-        public async Task ProcessExcelAsync(IFormFile file)
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        var productsToSave = new List<Product>();
+
+        using (var stream = file.OpenReadStream())
+        using (var reader = ExcelReaderFactory.CreateReader(stream))
         {
-            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-            var productsToSave = new List<Product>();
+            reader.Read(); // Saltamos cabecera
 
-            using (var stream = file.OpenReadStream())
-            using (var reader = ExcelReaderFactory.CreateReader(stream))
+            while (reader.Read())
             {
-                reader.Read(); // Cabecera
+                var title = reader.GetValue(1)?.ToString()?.Trim();
+                if (string.IsNullOrEmpty(title) || await productRepo.ExistProduct(title)) continue;
 
-                while (reader.Read())
+                // 1. Extraemos los IDs directamente del Excel
+                int catId = Convert.ToInt32(reader.GetValue(18)); // Columna S
+                int brId = Convert.ToInt32(reader.GetValue(19));  // Columna T
+
+                // 2. VALIDACIÓN PROFESIONAL: ¿Existen en mi base de datos?
+                var categoryExists = await context.ProductCategories.AnyAsync(c => c.id == catId);
+                var brandExists = await context.ProductBrands.AnyAsync(b => b.id == brId);
+
+                if (!categoryExists)
+                    throw new Exception($"Error en producto '{title}': La CategoryId {catId} no existe.");
+
+                if (!brandExists)
+                    throw new Exception($"Error en producto '{title}': La BrandId {brId} no existe.");
+
+                // 3. Si todo está bien, lo agregamos a la lista
+                productsToSave.Add(new Product
                 {
-                    var title = reader.GetValue(1)?.ToString()?.Trim();
-                    if (string.IsNullOrEmpty(title) || await productRepo.ExistProduct(title)) continue;
-
-                    var rawBrandName = reader.GetValue(10)?.ToString()?.Trim();
-                    var brandName = string.IsNullOrEmpty(rawBrandName) ? "Generic" : rawBrandName;
-
-                    // Comparación optimizada (Sugerencia CA1862)
-                    var brand = await context.ProductBrands
-                        .FirstOrDefaultAsync(b => string.Equals(b.name, brandName, StringComparison.OrdinalIgnoreCase));
-
-                    if (brand == null)
-                    {
-                        brand = new ProductBrand { name = brandName };
-                        context.ProductBrands.Add(brand);
-                        await context.SaveChangesAsync();
-                    }
-
-                    productsToSave.Add(new Product
-                    {
-                        title = title,
-                        description = reader.GetValue(2)?.ToString()?.Trim() ?? string.Empty,
-                        categoryId = Convert.ToInt32(reader.GetValue(3)),
-                        brandId = brand.id,
-                        price = Convert.ToDecimal(reader.GetValue(4)),
-                        stock = Convert.ToInt32(reader.GetValue(7)),
-                        sku = reader.GetValue(8)?.ToString()?.Trim() ?? string.Empty,
-                        thumbnail = reader.GetValue(20)?.ToString()?.Trim() ?? string.Empty
-                    });
-                }
-            }
-
-            if (productsToSave.Count > 0) // Sugerencia CA1860: Count > 0 es más rápido que Any() en Listas
-            {
-                await productRepo.AddProductsList(productsToSave);
+                    title = title,
+                    description = reader.GetValue(2)?.ToString()?.Trim() ?? string.Empty,
+                    price = Convert.ToDecimal(reader.GetValue(3)),
+                    stock = Convert.ToInt32(reader.GetValue(6)),
+                    sku = reader.GetValue(7)?.ToString()?.Trim() ?? string.Empty,
+                    thumbnail = reader.GetValue(17)?.ToString()?.Trim() ?? string.Empty,
+                    categoryId = catId,
+                    brandId = brId
+                });
             }
         }
 
-        public async Task<Product> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
-
-        public async Task UpdateProductAsync(Product product) => await productRepo.UpdateProduct(product);
-
-        public async Task DeleteProductAsync(int id) => await productRepo.DeleteProduct(id);
+        if (productsToSave.Count > 0)
+        {
+            await productRepo.AddProductsList(productsToSave);
+        }
     }
+
+    public async Task<Product> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
+    public async Task UpdateProductAsync(Product product) => await productRepo.UpdateProduct(product);
+    public async Task DeleteProductAsync(int id) => await productRepo.DeleteProduct(id);
 }
