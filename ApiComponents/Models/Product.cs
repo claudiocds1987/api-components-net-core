@@ -1,8 +1,10 @@
-﻿namespace ApiComponents.Models
+﻿using System.Text.Json.Serialization; // Necesario para JsonIgnore
+
+namespace ApiComponents.Models
 {
     public class Product
     {
-        public int id { get; set; } // ID Manual
+        public int id { get; set; }
         public string title { get; set; }
         public string description { get; set; }
         public decimal price { get; set; }
@@ -23,13 +25,19 @@
 
         // IDs numéricos (Lo que viene en el Excel)
         public int categoryId { get; set; }
+
+        [JsonIgnore] // Evita que aparezca 'category: null' y solo devuelva categoryId en el JSON
         public ProductCategory category { get; set; }
+
         public int brandId { get; set; }
+
+        [JsonIgnore] // Evita que aparezca 'brand: null' y solo devuelva brandId en el JSON
         public ProductBrand brand { get; set; }
 
         // Tablas hijas (1:N)
         public List<ProductImage> images { get; set; } = new();
         public List<ProductTag> tags { get; set; } = new();
+
         public List<ProductReview> reviews { get; set; } = new();
     }
 }

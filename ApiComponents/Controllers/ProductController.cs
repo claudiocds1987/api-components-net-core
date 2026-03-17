@@ -4,23 +4,36 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ApiComponents.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/products")]
 [ApiController]
 public class ProductController(IProductService productService) : ControllerBase
 {
     [HttpPost("upload-excel")]
     public async Task<IActionResult> UploadExcel(IFormFile file)
     {
-        if (file == null || file.Length == 0) return BadRequest("Archivo no válido.");
+        // Validación básica de archivo
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Archivo no seleccionado o está vacío." });
+
+        // Validar extensión del archivo
+        var extension = Path.GetExtension(file.FileName).ToLower();
+        if (extension != ".xlsx" && extension != ".csv")
+            return BadRequest(new { message = "Solo se permiten archivos .xlsx o .csv" });
 
         try
         {
             await productService.ProcessExcelAsync(file);
-            return Ok(new { message = "Excel procesado exitosamente" });
+            return Ok(new { message = "Productos cargados exitosamente." });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            // Aca 'ex.Message' contendrá toda la lista de errores (Fila 45, Fila 80, etc.)
+            // que unimos con '\n' en el Service.
+            return BadRequest(new
+            {
+                message = "Se encontraron errores en el archivo:",
+                errors = ex.Message.Split('\n') // Lo enviamos como array para que Angular lo recorra fácil
+            });
         }
     }
 
@@ -45,6 +58,20 @@ public class ProductController(IProductService productService) : ControllerBase
     {
         var product = await productService.GetProductByIdAsync(id);
         return product == null ? NotFound() : Ok(product);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetProducts([FromQuery] int? page = null, [FromQuery] int? size = null)
+    {
+        try
+        {
+            var result = await productService.GetAllProductsAsync(page, size);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]
