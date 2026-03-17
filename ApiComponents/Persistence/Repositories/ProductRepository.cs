@@ -20,8 +20,9 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     public async Task<(List<Product> Items, int TotalCount)> GetProductsAsync(int? page, int? size)
     {
         var query = db.Products
-            .Include(p => p.images) // Incluimos relaciones con EntityFramework para obtener imagenes y tags
+            .Include(p => p.images) // Incluimos relaciones con EntityFramework para obtener imagenes,tags y reviews de cada producto
             .Include(p => p.tags)
+            .Include(p => p.reviews)
             .AsQueryable();
 
         int totalCount = await query.CountAsync();

@@ -1,27 +1,38 @@
-﻿
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
-
 
 namespace ApiComponents.Models
 {
     public class Employee
     {
         public int id { get; set; }
-        [Required] public string name { get; set; }
 
-        [Required] public string surname { get; set; }
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres.")]
+        public string name { get; set; } = string.Empty;
 
-        [Required] public int countryId { get; set; }
+        [Required(ErrorMessage = "El apellido es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El apellido no puede exceder los 100 caracteres.")]
+        public string surname { get; set; } = string.Empty;
 
-        [Required] public DateTime birthDate { get; set; }
+        [Required(ErrorMessage = "El país es obligatorio.")]
+        public int countryId { get; set; }
 
-        [Required] public int positionId { get; set; }
+        [Required(ErrorMessage = "La fecha de nacimiento es obligatoria.")]
+        [DataType(DataType.Date)]
+        // Opcional: Podrías agregar un rango para evitar fechas imposibles
+        public DateTime birthDate { get; set; }
 
-        [Required] public bool active { get; set; }
+        [Required(ErrorMessage = "El puesto/posición es obligatorio.")]
+        public int positionId { get; set; }
 
-        public string imgUrl { get; set; }
+        [Required]
+        public bool active { get; set; } = true; // Por defecto activo
 
-        [Required] public int genderId { get; set; }
+        [Url(ErrorMessage = "La URL de la imagen no es válida.")]
+        public string imgUrl { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El género es obligatorio.")]
+        public int genderId { get; set; }
     }
 }

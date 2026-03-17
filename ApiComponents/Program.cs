@@ -70,7 +70,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         );
     }));
 
-// --- 5. INYECCIÓN DE DEPENDENCIAS rEPOSITORIOS ---
+// --- 5. INYECCIÓN DE DEPENDENCIAS REPOSITORIOS ---
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -79,7 +79,8 @@ builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
-// ---  INYECCIÓN DE DEPENDENCIAS sERVICIOS ---
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+// ---  INYECCIÓN DE DEPENDENCIAS SERVICIOS ---
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
