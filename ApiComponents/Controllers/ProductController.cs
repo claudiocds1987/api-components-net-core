@@ -8,34 +8,6 @@ namespace ApiComponents.Controllers;
 [ApiController]
 public class ProductController(IProductService productService) : ControllerBase
 {
-    [HttpPost("upload-excel")]
-    public async Task<IActionResult> UploadExcel(IFormFile file)
-    {
-        // Validación básica de archivo
-        if (file == null || file.Length == 0)
-            return BadRequest(new { message = "Archivo no seleccionado o está vacío." });
-
-        // Validar extensión del archivo
-        var extension = Path.GetExtension(file.FileName).ToLower();
-        if (extension != ".xlsx" && extension != ".csv")
-            return BadRequest(new { message = "Solo se permiten archivos .xlsx o .csv" });
-
-        try
-        {
-            await productService.ProcessExcelAsync(file);
-            return Ok(new { message = "Productos cargados exitosamente." });
-        }
-        catch (Exception ex)
-        {
-            // Aca 'ex.Message' contendrá toda la lista de errores (Fila 45, Fila 80, etc.)
-            // que unimos con '\n' en el Service.
-            return BadRequest(new
-            {
-                message = "Se encontraron errores en el archivo:",
-                errors = ex.Message.Split('\n') // Lo enviamos como array para que Angular lo recorra fácil
-            });
-        }
-    }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, Product product)

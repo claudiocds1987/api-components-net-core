@@ -1,139 +1,181 @@
-﻿using ApiComponents.Models;
+﻿using ApiComponents.DTOs;
+using ApiComponents.Models;
 using ApiComponents.Persistence.Context;
 using ApiComponents.Persistence.Repositories;
-using ExcelDataReader;
+using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace ApiComponents.Services;
 
 public class ProductService(IProductRepository productRepo, AppDbContext context) : IProductService
 {
-    public async Task ProcessExcelAsync(IFormFile file)
+
+    public async Task<ImportResultDto> ProcessCsvAsync(IFormFile file)
     {
-        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-
-        // Inicialización simplificada de C# 12
+        var result = new ImportResultDto();
         List<Product> productsToSave = [];
-        List<string> errorMessages = [];
 
-        using (var stream = file.OpenReadStream())
-        using (var reader = ExcelReaderFactory.CreateReader(stream))
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            // --- VALIDACIÓN DE CABECERA ---
-            reader.Read(); // Lee la Fila 1 (Cabecera)
-            var headerTitle = reader.GetValue(0)?.ToString()?.Trim().ToLower();
+            HasHeaderRecord = true,
+            Delimiter = ";", // Delimitador de Columnas/campos del archivo .csv
+                             // Para que no importe si hay espacios después del punto y coma
+            TrimOptions = TrimOptions.Trim,
+            PrepareHeaderForMatch = args => args.Header.ToLower().Trim(),
+            // IMPORTANTE: Si un campo falla, que no explote toda la lectura, sino que lo atrape el catch interno
+            MissingFieldFound = null,
+            HeaderValidated = null
+        };
 
-            // Verificamos que la primera columna sea 'title'. 
-            if (headerTitle != "title")
+        try
+        {
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, config);
+
+            // Leer encabezados
+            await csv.ReadAsync();
+            csv.ReadHeader();
+
+            // VALIDACIÓN DE CABECERA (mantenemos tu lógica)
+            if (!csv.HeaderRecord[0].Contains("title"))
             {
-                throw new Exception("Formato de archivo inválido. La primera columna debe ser 'title'.");
+                result.Success = false;
+                result.Message = "Formato inválido. La primera columna debe ser 'title'.";
+                return result;
             }
 
-            int rowNumber = 2; // Para rastrear errores por fila
+            int rowNumber = 2; // La fila 1 son los encabezados
 
-            while (reader.Read())
+            while (await csv.ReadAsync())
             {
                 try
                 {
-                    // El Título es la primera columna (índice 0)
-                    var title = reader.GetValue(0)?.ToString()?.Trim();
+                    var title = csv.GetField("title")?.Trim();
 
-                    // Validación de existencia o vacío
-                    if (string.IsNullOrEmpty(title))
-                    {
-                        rowNumber++;
-                        continue;
-                    }
+                    if (string.IsNullOrEmpty(title)) { rowNumber++; continue; }
 
+                    // 1. Validar si ya existe
                     if (await productRepo.ExistProduct(title))
                     {
-                        errorMessages.Add($"Fila {rowNumber}: El producto '{title}' ya existe y fue saltado.");
-                        rowNumber++;
-                        continue;
+                        result.Errors.Add($"Fila {rowNumber}: El producto '{title}' ya existe y fue saltado.");
+                        rowNumber++; continue;
                     }
 
-                    // --- ÍNDICES SEGÚN TU EXCEL ACTUAL ---
-                    int catId = Convert.ToInt32(reader.GetValue(17)); // Columna R
-                    int brId = Convert.ToInt32(reader.GetValue(18));  // Columna S
+                    // 2. Validar Categoría y Marca (Blindado con TryParse)
+                    var catField = csv.GetField("categoryid");
+                    var brandField = csv.GetField("brandid");
 
-                    // Validaciones de existencia de IDs en la DB (Acumulando errores)
+                    if (!int.TryParse(catField, out int catId))
+                    {
+                        result.Errors.Add($"Fila {rowNumber}: El valor de CategoryId '{catField}' no es un número válido.");
+                        rowNumber++; continue;
+                    }
+
+                    if (!int.TryParse(brandField, out int brId))
+                    {
+                        result.Errors.Add($"Fila {rowNumber}: El valor de BrandId '{brandField}' no es un número válido.");
+                        rowNumber++; continue;
+                    }
+
                     bool categoryExists = await context.ProductCategories.AnyAsync(c => c.id == catId);
                     bool brandExists = await context.ProductBrands.AnyAsync(b => b.id == brId);
 
-                    if (!categoryExists)
-                        errorMessages.Add($"Fila {rowNumber}: La CategoryId {catId} no existe.");
+                    if (!categoryExists) result.Errors.Add($"Fila {rowNumber}: La CategoryId {catId} no existe en la base de datos.");
+                    if (!brandExists) result.Errors.Add($"Fila {rowNumber}: La BrandId {brId} no existe en la base de datos.");
 
-                    if (!brandExists)
-                        errorMessages.Add($"Fila {rowNumber}: La BrandId {brId} no existe.");
+                    if (!categoryExists || !brandExists) { rowNumber++; continue; }
 
-                    // Si hubo errores de integridad en esta fila, saltamos a la siguiente sin crear el objeto
-                    if (!categoryExists || !brandExists)
-                    {
-                        rowNumber++;
-                        continue;
-                    }
-
+                    // 3. Mapeo del objeto
                     var product = new Product
                     {
-                        title = title,                                                        // Columna A 
-                        description = reader.GetValue(1)?.ToString()?.Trim() ?? string.Empty, // Columna B
-                        price = Convert.ToDecimal(reader.GetValue(2)),                        // Columna C
-                        discountPercentage = Convert.ToDecimal(reader.GetValue(3)),           // Columna D
-                        rating = Convert.ToDecimal(reader.GetValue(4)),                       // Columna E
-                        stock = Convert.ToInt32(reader.GetValue(5)),                         // Columna F
-                        sku = reader.GetValue(6)?.ToString()?.Trim() ?? string.Empty,         // Columna G
-                        weight = Convert.ToDecimal(reader.GetValue(7)),
-                        width = Convert.ToDecimal(reader.GetValue(8)),
-                        height = Convert.ToDecimal(reader.GetValue(9)),
-                        depth = Convert.ToDecimal(reader.GetValue(10)),
-                        warrantyInformation = reader.GetValue(11)?.ToString()?.Trim() ?? string.Empty,
-                        shippingInformation = reader.GetValue(12)?.ToString()?.Trim() ?? string.Empty,
-                        availabilityStatus = reader.GetValue(13)?.ToString()?.Trim() ?? string.Empty,
-                        returnPolicy = reader.GetValue(14)?.ToString()?.Trim() ?? string.Empty,
-                        minimumOrderQuantity = Convert.ToInt32(reader.GetValue(15)),
-                        thumbnail = reader.GetValue(16)?.ToString()?.Trim() ?? string.Empty, // Columna Q
+                        title = title,
+                        description = csv.GetField("description") ?? string.Empty,
+
+                        // Mapeo de Números (Decimales con Punto)
+                        price = decimal.Parse(csv.GetField("price") ?? "0", CultureInfo.InvariantCulture),
+                        discountPercentage = decimal.Parse(csv.GetField("discountpercentage") ?? "0", CultureInfo.InvariantCulture),
+                        rating = decimal.Parse(csv.GetField("rating") ?? "0", CultureInfo.InvariantCulture),
+
+                        // Mapeo de Enteros
+                        stock = int.Parse(csv.GetField("stock") ?? "0"),
+                        minimumOrderQuantity = int.Parse(csv.GetField("minimumorderquantity") ?? "0"),
+
+                        // Mapeo de Strings
+                        sku = csv.GetField("sku") ?? string.Empty,
+                        warrantyInformation = csv.GetField("warrantyinformation") ?? string.Empty,
+                        shippingInformation = csv.GetField("shippinginformation") ?? string.Empty,
+                        availabilityStatus = csv.GetField("availabilitystatus") ?? string.Empty,
+                        returnPolicy = csv.GetField("returnpolicy") ?? string.Empty,
+                        thumbnail = csv.GetField("thumbnail") ?? string.Empty,
+
+                        // Dimensiones (Decimales)
+                        weight = decimal.Parse(csv.GetField("weight") ?? "0", CultureInfo.InvariantCulture),
+                        width = decimal.Parse(csv.GetField("width") ?? "0", CultureInfo.InvariantCulture),
+                        height = decimal.Parse(csv.GetField("height") ?? "0", CultureInfo.InvariantCulture),
+                        depth = decimal.Parse(csv.GetField("depth") ?? "0", CultureInfo.InvariantCulture),
+
+                        // Relaciones (Ya validadas antes en tu código)
                         categoryId = catId,
                         brandId = brId
                     };
 
-                    // Imágenes en Columna T (Índice 19) - Uso de spread operator [.. ]
-                    var imagesRaw = reader.GetValue(19)?.ToString();
+                    // Imágenes (Columna T / images)
+                    var imagesRaw = csv.GetField("images");
                     if (!string.IsNullOrWhiteSpace(imagesRaw))
                     {
                         product.images = [.. imagesRaw.Split(',').Select(url => new ProductImage { imageUrl = url.Trim() })];
                     }
 
-                    // Tags en Columna U (Índice 20)
-                    var tagsRaw = reader.GetValue(20)?.ToString();
+                    // Tags (Columna U / tags)
+                    var tagsRaw = csv.GetField("tags");
                     if (!string.IsNullOrWhiteSpace(tagsRaw))
                     {
                         product.tags = [.. tagsRaw.Split(',').Select(tag => new ProductTag { tagName = tag.Trim() })];
                     }
 
                     productsToSave.Add(product);
-                    rowNumber++;
                 }
                 catch (Exception ex)
                 {
-                    // Captura errores de formato (letras en campos de números, etc.)
-                    errorMessages.Add($"Fila {rowNumber}: Error de formato o dato inválido ({ex.Message})");
-                    rowNumber++;
+                    result.Errors.Add($"Fila {rowNumber}: Error de datos detallado ({ex.Message})");
                 }
+                rowNumber++;
             }
         }
-
-        // Si al finalizar el bucle hay mensajes de error en la lista, lanzamos la excepción con todos los errores juntos
-        if (errorMessages.Count > 0)
+        catch (Exception ex)
         {
-            throw new Exception(string.Join("\n", errorMessages));
+            result.Success = false;
+            // si el error es de CsvHelper, va a decir qué columna o fila falló
+            result.Message = $"Error crítico: {ex.Message}";
+            result.Errors.Add($"DETALLE TÉCNICO: {ex.Message}");
+
+            if (ex.InnerException != null)
+                result.Errors.Add($"CAUSA RAÍZ: {ex.InnerException.Message}");
+
+            return result;
+        }
+
+        // --- FINALIZACIÓN ---
+        if (result.Errors.Count > 0)
+        {
+            result.Success = false;
+            // El mensaje va a decir cuántos errores hubo para que el usuario sepa que falló
+            result.Message = $"Se encontraron {result.Errors.Count} errores en las filas. Revise el reporte para más detalle.";
+            return result;
         }
 
         if (productsToSave.Count > 0)
         {
             await productRepo.AddProductsList(productsToSave);
+            result.Success = true;
+            result.Message = "Productos cargados exitosamente.";
+            result.Count = productsToSave.Count;
         }
-    }
 
+        return result;
+    }
     public async Task<Product> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
 
     public async Task<object> GetAllProductsAsync(int? page, int? size)
