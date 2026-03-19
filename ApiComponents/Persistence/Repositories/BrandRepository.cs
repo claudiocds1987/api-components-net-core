@@ -7,12 +7,12 @@ namespace ApiComponents.Persistence.Repositories;
 public class BrandRepository(AppDbContext context) : IBrandRepository
 {
     public async Task<bool> ExistBrand(string name)
-        => await context.ProductBrands.AnyAsync(b => b.name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        => await context.ProductBrands.AnyAsync(b => b.name.ToLower() == name.ToLower());
 
     public async Task<IEnumerable<ProductBrand>> GetAllBrands()
         => await context.ProductBrands.ToListAsync();
 
-    public async Task<ProductBrand> GetBrand(int id)
+    public async Task<ProductBrand?> GetBrand(int id)
         => await context.ProductBrands.FindAsync(id);
 
     public async Task AddBrand(ProductBrand brand)

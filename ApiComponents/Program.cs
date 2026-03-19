@@ -80,6 +80,7 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 // ---  INYECCIÓN DE DEPENDENCIAS SERVICIOS ---
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
@@ -89,6 +90,7 @@ builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
+builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 
 // --- 6. CONFIGURAR JWT ---
 var jwtKey = builder.Configuration["Jwt:Key"];

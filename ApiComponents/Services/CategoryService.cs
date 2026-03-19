@@ -8,7 +8,7 @@ namespace ApiComponents.Services
     {
         public async Task<IEnumerable<ProductCategory>> GetAllCategoriesAsync() => await categoryRepo.GetAllCategories();
 
-        public async Task<ProductCategory> GetCategoryByIdAsync(int id) => await categoryRepo.GetCategory(id);
+        public async Task<ProductCategory?> GetCategoryByIdAsync(int id) => await categoryRepo.GetCategory(id);
 
         public async Task CreateCategoryAsync(ProductCategory category)
         {

@@ -38,10 +38,12 @@ namespace ApiComponents.Persistence.Context
 
             // Esta línea le dice a EF Core que aplique todas las clases
             // que implementan IEntityTypeConfiguration<T> en este assembly.
-            // Esto importa automáticamente CountryConfiguration y PositionConfiguration.
+            // Esto importa automáticamente CountryConfiguration, PositionConfiguration,
+            // ProductConfiguration, ProductBrandConfiguration, etc.
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
             //  CONFIGURACIÓN DE ID AUTOINCREMENTAL
+            // (Nota: Esto ya podría estar dentro de ProductConfiguration, pero no molesta tenerlo aquí)
             modelBuilder.Entity<Product>().HasKey(p => p.id);
 
             // 3. CONFIGURACIÓN DE DECIMALES (Solución al error CS1501)
@@ -51,7 +53,7 @@ namespace ApiComponents.Persistence.Context
             {
                 // Separamos la precisión de la escala para cumplir con la nueva versión de EF Core
                 property.SetPrecision(18); // Dígitos totales
-                property.SetScale(2);     // Dígitos después de la coma (ej: 99.99)
+                property.SetScale(2);     // 2 Dígitos después de la coma (ej: 99.99)
             }
         }
     }

@@ -8,7 +8,7 @@ namespace ApiComponents.Services
     {
         public async Task<IEnumerable<ProductBrand>> GetAllBrandsAsync() => await brandRepo.GetAllBrands();
 
-        public async Task<ProductBrand> GetBrandByIdAsync(int id) => await brandRepo.GetBrand(id);
+        public async Task<ProductBrand?> GetBrandByIdAsync(int id) => await brandRepo.GetBrand(id);
 
         public async Task CreateBrandAsync(ProductBrand brand)
         {

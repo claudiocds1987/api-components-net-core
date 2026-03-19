@@ -191,7 +191,7 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
 
         return result; // Devuelve el resultado final al controlador
     }
-    public async Task<Product> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
+    public async Task<Product?> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
 
     public async Task<object> GetAllProductsAsync(int? page, int? size)
     {

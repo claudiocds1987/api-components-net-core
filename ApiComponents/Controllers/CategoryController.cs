@@ -2,8 +2,6 @@
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ApiComponents.Controllers;
-
 [Route("api/[controller]")]
 [ApiController]
 public class CategoryController(ICategoryService categoryService) : ControllerBase
@@ -12,15 +10,26 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
     public async Task<ActionResult<IEnumerable<ProductCategory>>> GetCategories()
         => Ok(await categoryService.GetAllCategoriesAsync());
 
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ProductCategory>> GetCategory(int id)
+    {
+        var category = await categoryService.GetCategoryByIdAsync(id);
+        if (category == null) return NotFound($"La categoría con ID {id} no existe.");
+
+        return Ok(category);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateCategory(ProductCategory category)
     {
         try
         {
             await categoryService.CreateCategoryAsync(category);
-            return Ok(category);
+            // Uso de CreatedAtAction para devolver 201 y la ubicación del recurso
+            return CreatedAtAction(nameof(GetCategory), new { id = category.id }, category);
         }
-        catch (Exception ex) { return BadRequest(ex.Message); }
+        catch (ApplicationException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
     [HttpDelete("{id}")]

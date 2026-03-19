@@ -1,43 +1,42 @@
 ﻿using ApiComponents.Models;
-using ApiComponents.Persistence.Repositories;
+using ApiComponents.Services; // Cambiamos la referencia al servicio
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiComponents.Controllers;
 
 [Route("api/reviews")]
 [ApiController]
-public class ReviewController(IProductReviewRepository reviewRepo) : ControllerBase
+public class ReviewController(IProductReviewService reviewService) : ControllerBase
 {
-    // POST: api/reviews
     [HttpPost]
     public async Task<IActionResult> CreateReview(ProductReview review)
     {
-        if (review == null) return BadRequest("Datos de review inválidos.");
-
         try
         {
-            await reviewRepo.AddReview(review);
+            await reviewService.CreateReviewAsync(review);
             return Ok(new { message = "Review publicada con éxito." });
         }
-        catch (Exception ex)
+        catch (ApplicationException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
+        catch (Exception)
+        {
+            return StatusCode(500, "Error al publicar la review.");
+        }
     }
 
-    // GET: api/reviews/product/5
     [HttpGet("product/{productId}")]
     public async Task<ActionResult<List<ProductReview>>> GetProductReviews(int productId)
     {
-        var reviews = await reviewRepo.GetReviewsByProductId(productId);
+        var reviews = await reviewService.GetReviewsByProductIdAsync(productId);
         return Ok(reviews);
     }
 
-    // DELETE: api/reviews/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteReview(int id)
     {
-        await reviewRepo.DeleteReview(id);
+        await reviewService.DeleteReviewAsync(id);
         return NoContent();
     }
 }

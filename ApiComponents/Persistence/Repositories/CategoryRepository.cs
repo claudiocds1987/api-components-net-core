@@ -7,12 +7,12 @@ namespace ApiComponents.Persistence.Repositories;
 public class CategoryRepository(AppDbContext context) : ICategoryRepository
 {
     public async Task<bool> ExistCategory(string name)
-        => await context.ProductCategories.AnyAsync(c => c.name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        => await context.ProductCategories.AnyAsync(c => c.name.ToLower() == name.ToLower());
 
     public async Task<IEnumerable<ProductCategory>> GetAllCategories()
         => await context.ProductCategories.ToListAsync();
 
-    public async Task<ProductCategory> GetCategory(int id)
+    public async Task<ProductCategory?> GetCategory(int id)
         => await context.ProductCategories.FindAsync(id);
 
     public async Task AddCategory(ProductCategory category)

@@ -1,5 +1,6 @@
 ﻿using ApiComponents.Models;
 using ApiComponents.Persistence.Context;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiComponents.Persistence.Seed
 {
@@ -50,51 +51,46 @@ namespace ApiComponents.Persistence.Seed
 
         private static async Task SeedBrands(AppDbContext context)
         {
-            if (!context.ProductBrands.Any())
+            // Solo actuamos si la tabla está vacía
+            if (!await context.ProductBrands.AnyAsync())
             {
-                var brands = new List<ProductBrand>
+                var brandNames = new List<string>
         {
-            // Tecnología / Smartphones / Laptops
-            new() { name = "Apple" },
-            new() { name = "Samsung" },
-            new() { name = "Huawei" },
-            new() { name = "Oppo" },
-            new() { name = "Vivo" },
-            new() { name = "Microsoft Surface" },
-            new() { name = "HP Pavilion" },
-            new() { name = "Infinix" },
-            
-            // Belleza / Fragancias
-            new() { name = "L'Oreal Paris" },
-            new() { name = "Essence" },
-            new() { name = "Glamour Beauty" },
-            new() { name = "Velvet Touch" },
-            new() { name = "Chanel" },
-            new() { name = "Dior" },
-            new() { name = "Gucci" },
-            
-            // Hogar / Muebles / Decoración
-            new() { name = "Furniture Co." },
-            new() { name = "Knoll" },
-            new() { name = "Bath Trends" },
-            new() { name = "Home Decor" },
-            
-            // Relojes / Joyas / Accesorios
-            new() { name = "Rolex" },
-            new() { name = "Casio" },
-            new() { name = "Fossil" },
-            new() { name = "Luxury Watch" },
-            new() { name = "Fashion Trends" },
-            
-            // Otros / Supermercado
-            new() { name = "Annibale Colombo" },
-            new() { name = "Calvin Klein" },
-            new() { name = "Nike" },
-            new() { name = "Adidas" },
-            new() { name = "Puma" }
+            // Tecnología y Smartphones
+            "Apple", "Samsung", "Huawei", "Oppo", "Vivo", "Microsoft Surface", "HP Pavilion",
+            "Infinix", "Iphone", "OnePlus 12", "Xiaomi", "Motorola", "Sony", "Asus", "Realme",
+            "Nothing", "Honor", "Redmi", "Poco", "Tecno", "ZTE", "Meizu", "Lenovo", "Razer",
+            "Nokia", "Fairphone", "Gigabyte", "HP", "Microsoft", "Dell", "Acer", "Alienware",
+            "LG", "Fujitsu", "Panasonic", "Dynabook", "System76", "Framework", "Purism",
+
+            // Belleza, Perfumes y Cuidado Personal
+            "L'Oreal Paris", "Essence", "Glamour Beauty", "Velvet Touch", "Chanel", "Dior",
+            "Gucci", "Versace", "Armani Code", "Bvlgari", "Hugo Boss", "Jean Paul Gaultier",
+            "Paco Rabanne", "Prada", "Ralph Lauren", "Yves Saint Laurent",
+
+            // Relojería y Lujo
+            "Rolex", "Casio", "Fossil", "Luxury Watch", "Garmin", "Fitbit", "Amazfit",
+            "Omega", "Tissot", "Seiko", "Longines", "IWC", "Breitling", "Cartier",
+            "Audemars", "Patek Philippe Calatrava", "Daniel Wellington", "Citizen",
+            "Bulova", "Hamilton", "Movado", "Tudor", "Panerai", "Zenith",
+            "Jaeger-LeCoultre", "Girard-Perregaux", "Vacheron Constantin", "Piaget",
+            "Chopard", "Blancpain", "Breguet", "Glashutte",
+
+            // Hogar, Muebles y Decoración
+            "Furniture Co.", "Knoll", "Bath Trends", "Home Decor", "Annibale Colombo",
+            "Blue & Black",
+
+            // Moda y Otros
+            "Fashion Trends", "Calvin Klein", "Nike", "Adidas", "Puma", "Nescafe", "Generic", "Luxury"
         };
 
-                await context.ProductBrands.AddRangeAsync(brands);
+                // Eliminamos duplicados por si acaso y convertimos a objetos ProductBrand
+                var brandsToInsert = brandNames
+                    .Distinct()
+                    .Select(name => new ProductBrand { name = name })
+                    .ToList();
+
+                await context.ProductBrands.AddRangeAsync(brandsToInsert);
                 await context.SaveChangesAsync();
             }
         }
