@@ -152,19 +152,30 @@ app.UseAuthorization();
 // MapControllers: Es el final del camino. Ejecuta la lógica de tu controlador.
 app.MapControllers();
 
-// --- 9. SEED DATA ---
+// --- 9. MIGRACIONES Y SEED DATA ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<AppDbContext>();
     try
     {
-        // Esto ejecutará tanto categorías como marcas etc..
+        // --- APLICAR MIGRACIONES PENDIENTES ---
+        // Esto iguala la estructura de MonsterASP con mi base local automáticamente
+        if (context.Database.GetPendingMigrations().Any())
+        {
+            context.Database.Migrate();
+            Console.WriteLine("Migraciones aplicadas con éxito.");
+        }
+
+        // --- CARGAR DATOS INICIALES ---
+        // Ejecuta el Seeding de datos maestros (Categorías, Marcas, etc.).
+        // El método es idempotente: solo insertará registros si las tablas están vacías (Esto esta configurado en DbSeeders),
+        // evitando duplicados en cada reinicio de la aplicación.
         await DbSeeder.SeedAll(context);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error al cargar los datos iniciales: {ex.Message}");
+        Console.WriteLine($"Error en el proceso de inicio (Migración/Seed): {ex.Message}");
     }
 }
 
