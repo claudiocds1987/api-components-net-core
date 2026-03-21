@@ -130,12 +130,14 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // --- 8. MIDDLEWARES (Orden Crítico) ---
-// UseSwagger(); genera el archivo JSON con la definición
+
+// UseSwagger(); genera el archivo JSON con la definición. 
 app.UseSwagger();
 // UseSwaggerUI monta la interfaz gráfica para probar los endpoints.
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ApiComponents v1");
+    // Usamos "./swagger/v1/swagger.json" para forzar que busque en la carpeta actual
+    c.SwaggerEndpoint("./swagger/v1/swagger.json", "ApiComponents v1");
     c.RoutePrefix = string.Empty;
 });
 // UseHttpsRedirection: Fuerza a que cualquier petición HTTP se pase a HTTPS
