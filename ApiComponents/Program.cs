@@ -28,19 +28,18 @@ builder.Services.AddCors(options =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            // EN LOCAL: Aceptamos todo, pero solo una vez.
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
         }
         else
         {
-            // EN PRODUCCIÓN: Filtramos para GitHub
             if (!string.IsNullOrEmpty(allowedOrigins))
             {
-                policy.WithOrigins(allowedOrigins)
+                // Separamos por coma por si algún día se agregan más URLs
+                var origins = allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                policy.WithOrigins(origins)
                       .AllowAnyHeader()
-                      .AllowAnyMethod();
+                      .AllowAnyMethod()
+                      .AllowCredentials();
             }
         }
     });
