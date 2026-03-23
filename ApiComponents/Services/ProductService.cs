@@ -199,11 +199,11 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
 
         return new
         {
-            Items = items,
-            TotalItems = totalCount,
-            PageNumber = page ?? 1,
-            PageSize = size ?? totalCount,
-            TotalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
+            items = items,
+            totalItems = totalCount,
+            pageNumber = page ?? 1,
+            pageSize = size ?? totalCount,
+            totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
         };
     }
 
