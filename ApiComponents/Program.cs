@@ -52,9 +52,9 @@ builder.Services.AddControllers()
         // 1. Evita el error de ciclos infinitos al serializar relaciones
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 
-        // 2. Mantiene los nombres de las propiedades tal cual están en C# (id, title, price)
-        // en lugar de convertirlos a camelCase (ID, Title, Price) automáticamente.
-        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        // 2. CAMBIO CLAVE: Forzamos CamelCase (minúsculas) para que coincida con Angular
+        // Esto convertirá Items -> items, TotalItems -> totalItems automáticamente.
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 // --- 4. CONFIGURACIÓN DE BASE DE DATOS ---
@@ -78,7 +78,6 @@ builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
-builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 // ---  INYECCIÓN DE DEPENDENCIAS SERVICIOS ---
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();

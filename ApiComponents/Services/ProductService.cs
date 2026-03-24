@@ -193,19 +193,42 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
     }
     public async Task<Product?> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
 
-    public async Task<object> GetAllProductsAsync(int? page, int? size)
+    public async Task<object> GetAllProductsAsync(
+    int? page,
+    int? size,
+    string? search,
+    int? categoryId,
+    decimal? minPrice,
+    decimal? maxPrice,
+    string? sortBy,
+    string? order)
     {
-        var (items, totalCount) = await productRepo.GetProductsAsync(page, size);
+        // Pasamos todos los parámetros al repositorio
+        var (items, totalCount) = await productRepo.GetProductsAsync(page, size, search, categoryId, minPrice, maxPrice, sortBy, order);
 
         return new
         {
             items = items,
             totalItems = totalCount,
             pageNumber = page ?? 1,
-            pageSize = size ?? totalCount,
+            pageSize = size ?? 10,
             totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
         };
     }
+
+    //public async Task<object> GetAllProductsAsync(int? page, int? size)
+    //{
+    //    var (items, totalCount) = await productRepo.GetProductsAsync(page, size);
+
+    //    return new
+    //    {
+    //        items = items,
+    //        totalItems = totalCount,
+    //        pageNumber = page ?? 1,
+    //        pageSize = size ?? totalCount,
+    //        totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
+    //    };
+    //}
 
     public async Task UpdateProductAsync(Product product) => await productRepo.UpdateProduct(product);
     public async Task DeleteProductAsync(int id) => await productRepo.DeleteProduct(id);

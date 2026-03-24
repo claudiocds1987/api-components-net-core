@@ -8,12 +8,22 @@ namespace ApiComponents.Controllers;
 [ApiController]
 public class ProductController(IProductService productService) : ControllerBase
 {
+
     [HttpGet]
-    public async Task<IActionResult> GetProducts([FromQuery] int? page = null, [FromQuery] int? size = null)
+    public async Task<IActionResult> GetProducts(
+    [FromQuery] int? page = null,
+    [FromQuery] int? size = null,
+    [FromQuery] string? search = null,
+    [FromQuery] int? categoryId = null,
+    [FromQuery] decimal? minPrice = null,
+    [FromQuery] decimal? maxPrice = null,
+    [FromQuery] string? sortBy = "title",
+    [FromQuery] string? order = "asc")
     {
         try
         {
-            var result = await productService.GetAllProductsAsync(page, size);
+            // Pasamos todos los filtros al servicio
+            var result = await productService.GetAllProductsAsync(page, size, search, categoryId, minPrice, maxPrice, sortBy, order);
             return Ok(result);
         }
         catch (Exception ex)

@@ -24,27 +24,81 @@ public class ProductRepository(AppDbContext db) : IProductRepository
           .FirstOrDefaultAsync(p => p.id == id);
     }
 
-    public async Task<(List<Product> Items, int TotalCount)> GetProductsAsync(int? page, int? size)
+    public async Task<(List<Product> Items, int TotalCount)> GetProductsAsync(
+     int? page,
+     int? size,
+     string? search,
+     int? categoryId,
+     decimal? minPrice,
+     decimal? maxPrice,
+     string? sortBy,
+     string? order)
     {
-        var query = db.Products
-            .Include(p => p.images) // Incluimos relaciones con EntityFramework para obtener imagenes,tags y reviews de cada producto
-            .Include(p => p.tags)
-            .Include(p => p.reviews)
-            .AsQueryable();
+        var query = db.Products.AsQueryable();
 
+        // 1. Filtrado por Texto
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(p => p.title.Contains(search) || p.description.Contains(search));
+
+        // 2. Filtrado por Categoría
+        if (categoryId.HasValue && categoryId > 0)
+            query = query.Where(p => p.categoryId == categoryId);
+
+        // 3. Filtrado por Rango de Precio
+        if (minPrice.HasValue)
+            query = query.Where(p => p.price >= minPrice);
+
+        if (maxPrice.HasValue)
+            query = query.Where(p => p.price <= maxPrice);
+
+        // 4. Conteo Total (Importante hacerlo antes de la paginación)
         int totalCount = await query.CountAsync();
 
-        if (page.HasValue && size.HasValue)
+        // 5. Ordenamiento Dinámico
+        if (sortBy?.ToLower() == "price")
         {
-            // - Skip(n): (EntityFramework) Para decirle a la base de datos cuántos registros debe saltar desde el principio de la lista.
-            // Ej: Si estoy en la página 3 y cada página tiene 10 productos, debe saltar los primeros 20.
-            // - Take(n): (EntityFramework) Para decirle a la base de datos cuántos registros debe tomar a partir de donde terminó el salto. Es el tamaño de tu página.
-            query = query.Skip((page.Value - 1) * size.Value).Take(size.Value);
+            query = order?.ToLower() == "desc"
+                ? query.OrderByDescending(p => p.price)
+                : query.OrderBy(p => p.price);
+        }
+        else
+        {
+            query = order?.ToLower() == "desc"
+                ? query.OrderByDescending(p => p.title)
+                : query.OrderBy(p => p.title);
         }
 
-        var items = await query.ToListAsync();
-        return (items, totalCount);
+        // 6. Paginación y ejecución de la consulta
+        // Usamos .ToListAsync() para asegurar que el retorno sea un List<Product>
+        var items = await query
+            .Skip(((page ?? 1) - 1) * (size ?? 10))
+            .Take(size ?? 10)
+            .ToListAsync();
+
+        return (Items: items, TotalCount: totalCount);
     }
+
+    //public async Task<(List<Product> Items, int TotalCount)> GetProductsAsync(int? page, int? size)
+    //{
+    //    var query = db.Products
+    //        .Include(p => p.images) // Incluimos relaciones con EntityFramework para obtener imagenes,tags y reviews de cada producto
+    //        .Include(p => p.tags)
+    //        .Include(p => p.reviews)
+    //        .AsQueryable();
+
+    //    int totalCount = await query.CountAsync();
+
+    //    if (page.HasValue && size.HasValue)
+    //    {
+    //        // - Skip(n): (EntityFramework) Para decirle a la base de datos cuántos registros debe saltar desde el principio de la lista.
+    //        // Ej: Si estoy en la página 3 y cada página tiene 10 productos, debe saltar los primeros 20.
+    //        // - Take(n): (EntityFramework) Para decirle a la base de datos cuántos registros debe tomar a partir de donde terminó el salto. Es el tamaño de tu página.
+    //        query = query.Skip((page.Value - 1) * size.Value).Take(size.Value);
+    //    }
+
+    //    var items = await query.ToListAsync();
+    //    return (items, totalCount);
+    //}
 
     public async Task UpdateProduct(Product product)
     {
