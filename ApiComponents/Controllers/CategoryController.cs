@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 public class CategoryController(ICategoryService categoryService) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductCategory>>> GetCategories()
-        => Ok(await categoryService.GetAllCategoriesAsync());
+    public async Task<ActionResult<IEnumerable<ProductCategory>>> GetCategories([FromQuery] bool? isActive = true)
+    {
+        return Ok(await categoryService.GetAllCategoriesAsync(isActive));
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductCategory>> GetCategory(int id)
@@ -35,7 +37,14 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        await categoryService.DeleteCategoryAsync(id);
-        return NoContent();
+        try
+        {
+            await categoryService.DeleteCategoryAsync(id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

@@ -25,16 +25,22 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     }
 
     public async Task<(List<Product> Items, int TotalCount)> GetProductsAsync(
-     int? page,
-     int? size,
-     string? search,
-     int? categoryId,
-     decimal? minPrice,
-     decimal? maxPrice,
-     string? sortBy,
-     string? order)
+    int? page,
+    int? size,
+    string? search,
+    int? categoryId,
+    decimal? minPrice,
+    decimal? maxPrice,
+    string? sortBy,
+    string? order,
+    bool? isActive = true) // Nuevo parámetro opcional para controlar el estado
     {
         var query = db.Products.AsQueryable();
+
+        // 0. Filtrado por Estado (Soft Delete)
+        // Si isActive tiene valor (true/false), filtramos por él. Si es null, trae todos.
+        if (isActive.HasValue)
+            query = query.Where(p => p.isActive == isActive.Value);
 
         // 1. Filtrado por Texto
         if (!string.IsNullOrWhiteSpace(search))
@@ -89,7 +95,8 @@ public class ProductRepository(AppDbContext db) : IProductRepository
         var product = await db.Products.FindAsync(id);
         if (product != null)
         {
-            db.Products.Remove(product);
+            product.isActive = false; // Solo cambiamos el estado (lo damos de baja lógica sin borrarlo de la base de datos)
+            db.Entry(product).State = EntityState.Modified;
             await db.SaveChangesAsync();
         }
     }

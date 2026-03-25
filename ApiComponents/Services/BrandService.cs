@@ -6,7 +6,10 @@ namespace ApiComponents.Services
     // Usando Constructor Principal
     public class BrandService(IBrandRepository brandRepo) : IBrandService
     {
-        public async Task<IEnumerable<ProductBrand>> GetAllBrandsAsync() => await brandRepo.GetAllBrands();
+        public async Task<IEnumerable<ProductBrand>> GetAllBrandsAsync(bool? isActive = true)
+        {
+            return await brandRepo.GetAllBrands(isActive);
+        }
 
         public async Task<ProductBrand?> GetBrandByIdAsync(int id) => await brandRepo.GetBrand(id);
 

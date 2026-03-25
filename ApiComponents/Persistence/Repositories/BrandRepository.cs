@@ -9,8 +9,18 @@ public class BrandRepository(AppDbContext context) : IBrandRepository
     public async Task<bool> ExistBrand(string name)
         => await context.ProductBrands.AnyAsync(b => b.name.ToLower() == name.ToLower());
 
-    public async Task<IEnumerable<ProductBrand>> GetAllBrands()
-        => await context.ProductBrands.ToListAsync();
+    public async Task<IEnumerable<ProductBrand>> GetAllBrands(bool? isActive = true)
+    {
+        var query = context.ProductBrands.AsQueryable();
+
+        // Filtro inteligente: null trae todo, true/false filtra por estado
+        if (isActive.HasValue)
+            query = query.Where(b => b.isActive == isActive.Value);
+
+        return await query.ToListAsync();
+    }
+
+
 
     public async Task<ProductBrand?> GetBrand(int id)
         => await context.ProductBrands.FindAsync(id);
@@ -32,7 +42,9 @@ public class BrandRepository(AppDbContext context) : IBrandRepository
         var b = await GetBrand(id);
         if (b != null)
         {
-            context.ProductBrands.Remove(b);
+            // SOFT DELETE: Cambiamos el estado isActive a false en lugar de eliminar el registro de la base de datos
+            b.isActive = false;
+            context.Entry(b).State = EntityState.Modified;
             await context.SaveChangesAsync();
         }
     }

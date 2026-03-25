@@ -4,11 +4,12 @@ namespace ApiComponents.Persistence.Repositories
 {
     public interface ICategoryRepository
     {
-        Task<IEnumerable<ProductCategory>> GetAllCategories();
+        // Modificado para aceptar el filtro opcional
+        Task<IEnumerable<ProductCategory>> GetAllCategories(bool? isActive = true);
         Task<ProductCategory?> GetCategory(int id);
         Task AddCategory(ProductCategory category);
         Task UpdateCategory(ProductCategory category);
         Task DeleteCategory(int id);
-        Task<bool> ExistCategory(string name); // Validación por nombre
+        Task<bool> ExistCategory(string name);
     }
 }

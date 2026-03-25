@@ -15,7 +15,14 @@ namespace ApiComponents.Persistence.Configurations
                    .HasMaxLength(200)
                    .IsRequired();
 
-            // Opcional: Evita categorías con nombres duplicados
+            // Nueva configuración para isActive
+            builder.Property(c => c.isActive)
+                   .HasDefaultValue(true)
+                   .IsRequired();
+
+            builder.HasIndex(c => c.isActive)
+                   .HasFilter("[isActive] = 1");
+
             builder.HasIndex(c => c.name).IsUnique();
         }
     }

@@ -194,17 +194,12 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
     public async Task<Product?> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
 
     public async Task<object> GetAllProductsAsync(
-    int? page,
-    int? size,
-    string? search,
-    int? categoryId,
-    decimal? minPrice,
-    decimal? maxPrice,
-    string? sortBy,
-    string? order)
+    int? page, int? size, string? search, int? categoryId,
+    decimal? minPrice, decimal? maxPrice, string? sortBy, string? order,
+    bool? isActive)
     {
-        // Pasamos todos los parámetros al repositorio
-        var (items, totalCount) = await productRepo.GetProductsAsync(page, size, search, categoryId, minPrice, maxPrice, sortBy, order);
+        var (items, totalCount) = await productRepo.GetProductsAsync(
+            page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
 
         return new
         {

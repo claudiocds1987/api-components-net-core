@@ -15,7 +15,8 @@ public interface IProductService
          decimal? minPrice = null,
          decimal? maxPrice = null,
          string? sortBy = "title",
-         string? order = "asc");
+         string? order = "asc",
+         bool? isActive = true);
     Task UpdateProductAsync(Product product);
     Task DeleteProductAsync(int id);
 }

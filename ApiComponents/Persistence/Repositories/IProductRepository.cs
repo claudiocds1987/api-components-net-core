@@ -16,7 +16,8 @@ namespace ApiComponents.Persistence.Repositories
             decimal? minPrice = null,
             decimal? maxPrice = null,
             string? sortBy = "title",
-            string? order = "asc");
+            string? order = "asc",
+            bool? isActive = true);
         Task DeleteProduct(int id);
         Task UpdateProduct(Product product);
         Task<bool> ExistProduct(string title); // Validamos por título ya que el ID es automático

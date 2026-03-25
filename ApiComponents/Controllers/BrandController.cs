@@ -9,9 +9,9 @@ namespace ApiComponents.Controllers;
 public class BrandController(IBrandService brandService) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductBrand>>> GetBrands()
+    public async Task<ActionResult<IEnumerable<ProductBrand>>> GetBrands([FromQuery] bool? isActive = true)
     {
-        var brands = await brandService.GetAllBrandsAsync();
+        var brands = await brandService.GetAllBrandsAsync(isActive);
         return Ok(brands);
     }
 
@@ -54,9 +54,14 @@ public class BrandController(IBrandService brandService) : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBrand(int id)
     {
-        // Opcional: Podrías verificar si existe antes de borrar, 
-        // pero tu Repo ya maneja el if (b != null).
-        await brandService.DeleteBrandAsync(id);
-        return NoContent();
+        try
+        {
+            await brandService.DeleteBrandAsync(id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

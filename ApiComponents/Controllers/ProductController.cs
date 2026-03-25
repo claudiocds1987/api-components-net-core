@@ -11,19 +11,20 @@ public class ProductController(IProductService productService) : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetProducts(
-    [FromQuery] int? page = null,
-    [FromQuery] int? size = null,
-    [FromQuery] string? search = null,
-    [FromQuery] int? categoryId = null,
-    [FromQuery] decimal? minPrice = null,
-    [FromQuery] decimal? maxPrice = null,
-    [FromQuery] string? sortBy = "title",
-    [FromQuery] string? order = "asc")
+      [FromQuery] int? page = null,
+      [FromQuery] int? size = null,
+      [FromQuery] string? search = null,
+      [FromQuery] int? categoryId = null,
+      [FromQuery] decimal? minPrice = null,
+      [FromQuery] decimal? maxPrice = null,
+      [FromQuery] string? sortBy = "title",
+      [FromQuery] string? order = "asc",
+      [FromQuery] bool? isActive = true)
     {
         try
         {
-            // Pasamos todos los filtros al servicio
-            var result = await productService.GetAllProductsAsync(page, size, search, categoryId, minPrice, maxPrice, sortBy, order);
+            var result = await productService.GetAllProductsAsync(
+                page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
             return Ok(result);
         }
         catch (Exception ex)

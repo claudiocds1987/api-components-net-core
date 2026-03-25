@@ -6,7 +6,10 @@ namespace ApiComponents.Services
     // Usando Constructor Principal
     public class CategoryService(ICategoryRepository categoryRepo) : ICategoryService
     {
-        public async Task<IEnumerable<ProductCategory>> GetAllCategoriesAsync() => await categoryRepo.GetAllCategories();
+        public async Task<IEnumerable<ProductCategory>> GetAllCategoriesAsync(bool? isActive = true)
+        {
+            return await categoryRepo.GetAllCategories(isActive);
+        }
 
         public async Task<ProductCategory?> GetCategoryByIdAsync(int id) => await categoryRepo.GetCategory(id);
 

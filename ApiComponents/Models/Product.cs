@@ -61,5 +61,7 @@ namespace ApiComponents.Models
         public List<ProductImage> images { get; set; } = [];
         public List<ProductTag> tags { get; set; } = [];
         public List<ProductReview> reviews { get; set; } = [];
+
+        public bool isActive { get; set; } = true;
     }
 }
