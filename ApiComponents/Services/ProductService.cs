@@ -216,20 +216,6 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
         };
     }
 
-    //public async Task<object> GetAllProductsAsync(int? page, int? size)
-    //{
-    //    var (items, totalCount) = await productRepo.GetProductsAsync(page, size);
-
-    //    return new
-    //    {
-    //        items = items,
-    //        totalItems = totalCount,
-    //        pageNumber = page ?? 1,
-    //        pageSize = size ?? totalCount,
-    //        totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
-    //    };
-    //}
-
     public async Task UpdateProductAsync(Product product) => await productRepo.UpdateProduct(product);
     public async Task DeleteProductAsync(int id) => await productRepo.DeleteProduct(id);
 }

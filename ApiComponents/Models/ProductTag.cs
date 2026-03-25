@@ -10,7 +10,7 @@ namespace ApiComponents.Models
         [StringLength(200)]
         public string tagName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El ID del producto para crear el tag obligatorio.")]
+        [Required(ErrorMessage = "El ID del producto es obligatorio para crear el tag.")]
         public int productId { get; set; }
     }
 }
