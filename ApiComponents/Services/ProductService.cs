@@ -211,6 +211,24 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
         };
     }
 
+    public async Task<object> GetProductsAdminAsync(
+    int? page, int? size, string? search, int? categoryId,
+    decimal? minPrice, decimal? maxPrice, string? sortBy, string? order,
+    bool? isActive)
+    {
+        var (items, totalCount) = await productRepo.GetProductsAdminAsync(
+            page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
+
+        return new
+        {
+            items = items,
+            totalItems = totalCount,
+            pageNumber = page ?? 1,
+            pageSize = size ?? 10,
+            totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
+        };
+    }
+
     public async Task UpdateProductAsync(Product product) => await productRepo.UpdateProduct(product);
     public async Task DeleteProductAsync(int id) => await productRepo.DeleteProduct(id);
 }

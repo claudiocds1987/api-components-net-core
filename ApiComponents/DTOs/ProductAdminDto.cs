@@ -1,0 +1,13 @@
+﻿namespace ApiComponents.DTOs
+{
+    public class ProductAdminDto
+    {
+        public int id { get; set; }
+        public string title { get; set; } = string.Empty;
+        public string sku { get; set; } = string.Empty;
+        public decimal price { get; set; }
+        public int stock { get; set; }
+        public bool isActive { get; set; }
+        public string? imageUrl { get; set; } // Para la miniatura en la tabla
+    }
+}

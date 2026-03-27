@@ -1,4 +1,5 @@
-﻿using ApiComponents.Models;
+﻿using ApiComponents.DTOs;
+using ApiComponents.Models;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +25,30 @@ public class ProductController(IProductService productService) : ControllerBase
         try
         {
             var result = await productService.GetAllProductsAsync(
+                page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("admin")]
+    public async Task<IActionResult> GetProductsAdmin(
+     [FromQuery] int? page = null,
+     [FromQuery] int? size = null,
+     [FromQuery] string? search = null,
+     [FromQuery] int? categoryId = null,
+     [FromQuery] decimal? minPrice = null,
+     [FromQuery] decimal? maxPrice = null,
+     [FromQuery] string? sortBy = "id",
+     [FromQuery] string? order = "asc",
+     [FromQuery] bool? isActive = null) // Null para que el admin vea "Todos" al entrar activos e inactivos por defecto
+    {
+        try
+        {
+            var result = await productService.GetProductsAdminAsync(
                 page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
             return Ok(result);
         }

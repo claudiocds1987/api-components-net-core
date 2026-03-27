@@ -1,4 +1,5 @@
-﻿using ApiComponents.Models;
+﻿using ApiComponents.DTOs;
+using ApiComponents.Models;
 using ApiComponents.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,7 +34,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     decimal? maxPrice,
     string? sortBy,
     string? order,
-    bool? isActive = true) // Nuevo parámetro opcional para controlar el estado
+    bool? isActive = true)
     {
         var query = db.Products.AsQueryable();
 
@@ -83,6 +84,76 @@ public class ProductRepository(AppDbContext db) : IProductRepository
 
         return (Items: items, TotalCount: totalCount);
     }
+
+    public async Task<(List<ProductAdminDto> Items, int TotalCount)> GetProductsAdminAsync(
+     int? page,
+    int? size,
+    string? search,
+    int? categoryId,
+    decimal? minPrice,
+    decimal? maxPrice,
+    string? sortBy,
+    string? order,
+    bool? isActive = null) // "null" Para el Admin, el filtro de isActive es opcional (puede querer ver solo activos, solo inactivos o ambos)
+    {
+        var query = db.Products.AsQueryable();
+
+        // 0. Filtrado por Estado (Soft Delete)
+        // Si isActive tiene valor (true/false), filtramos por él. Si es null, trae todos.
+        if (isActive.HasValue)
+            query = query.Where(p => p.isActive == isActive.Value);
+
+        // 1. Filtrado por Texto
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(p => p.title.Contains(search) || p.description.Contains(search));
+
+        // 2. Filtrado por Categoría
+        if (categoryId.HasValue && categoryId > 0)
+            query = query.Where(p => p.categoryId == categoryId);
+
+        // 3. Filtrado por Rango de Precio
+        if (minPrice.HasValue)
+            query = query.Where(p => p.price >= minPrice);
+
+        if (maxPrice.HasValue)
+            query = query.Where(p => p.price <= maxPrice);
+
+        // 4. Conteo Total (Importante hacerlo antes de la paginación)
+        int totalCount = await query.CountAsync();
+
+        // 5. Ordenamiento Dinámico
+        if (sortBy?.ToLower() == "price")
+        {
+            query = order?.ToLower() == "desc"
+                ? query.OrderByDescending(p => p.price)
+                : query.OrderBy(p => p.price);
+        }
+        else
+        {
+            query = order?.ToLower() == "desc"
+                ? query.OrderByDescending(p => p.title)
+                : query.OrderBy(p => p.title);
+        }
+        // 6. Paginación y ejecución de la consulta
+        var items = await query
+            .OrderByDescending(p => p.id) // Lo más nuevo primero para el Admin
+            .Skip(((page ?? 1) - 1) * (size ?? 10))
+            .Take(size ?? 10)
+            .Select(p => new ProductAdminDto
+            {
+                id = p.id,
+                title = p.title,
+                sku = p.sku,
+                price = p.price,
+                stock = p.stock,
+                isActive = p.isActive,
+                imageUrl = p.thumbnail
+            })
+            .ToListAsync();
+
+        return (Items: items, TotalCount: totalCount);
+    }
+
 
     public async Task UpdateProduct(Product product)
     {
