@@ -16,16 +16,17 @@ public class ProductController(IProductService productService) : ControllerBase
       [FromQuery] int? size = null,
       [FromQuery] string? search = null,
       [FromQuery] int? categoryId = null,
+      [FromQuery] int? brandId = null,
       [FromQuery] decimal? minPrice = null,
       [FromQuery] decimal? maxPrice = null,
-      [FromQuery] string? sortBy = "title",
-      [FromQuery] string? order = "asc",
+      [FromQuery] string? sortBy = "id",
+      [FromQuery] string? order = "desc",
       [FromQuery] bool? isActive = true)
     {
         try
         {
             var result = await productService.GetAllProductsAsync(
-                page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
+                page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
             return Ok(result);
         }
         catch (Exception ex)
@@ -40,16 +41,17 @@ public class ProductController(IProductService productService) : ControllerBase
      [FromQuery] int? size = null,
      [FromQuery] string? search = null,
      [FromQuery] int? categoryId = null,
+     [FromQuery] int? brandId = null,
      [FromQuery] decimal? minPrice = null,
      [FromQuery] decimal? maxPrice = null,
      [FromQuery] string? sortBy = "id",
-     [FromQuery] string? order = "asc",
+     [FromQuery] string? order = "desc",
      [FromQuery] bool? isActive = null) // Null para que el admin vea "Todos" al entrar activos e inactivos por defecto
     {
         try
         {
             var result = await productService.GetProductsAdminAsync(
-                page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
+                page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
             return Ok(result);
         }
         catch (Exception ex)

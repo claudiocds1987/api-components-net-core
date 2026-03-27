@@ -194,37 +194,37 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
     public async Task<Product?> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
 
     public async Task<object> GetAllProductsAsync(
-    int? page, int? size, string? search, int? categoryId,
+    int? page, int? size, string? search, int? categoryId, int? brandId,
     decimal? minPrice, decimal? maxPrice, string? sortBy, string? order,
     bool? isActive)
     {
         var (items, totalCount) = await productRepo.GetProductsAsync(
-            page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
+            page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
 
         return new
         {
             items = items,
             totalItems = totalCount,
             pageNumber = page ?? 1,
-            pageSize = size ?? 10,
+            pageSize = size ?? 25,
             totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
         };
     }
 
     public async Task<object> GetProductsAdminAsync(
-    int? page, int? size, string? search, int? categoryId,
+    int? page, int? size, string? search, int? categoryId, int? brandId,
     decimal? minPrice, decimal? maxPrice, string? sortBy, string? order,
     bool? isActive)
     {
         var (items, totalCount) = await productRepo.GetProductsAdminAsync(
-            page, size, search, categoryId, minPrice, maxPrice, sortBy, order, isActive);
+            page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
 
         return new
         {
             items = items,
             totalItems = totalCount,
             pageNumber = page ?? 1,
-            pageSize = size ?? 10,
+            pageSize = size ?? 25,
             totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
         };
     }
