@@ -1,7 +1,9 @@
+using Microsoft.Extensions.DependencyInjection;
 using ApiComponents.Persistence.Context;
 using ApiComponents.Persistence.Repositories;
 using ApiComponents.Persistence.Seed;
 using ApiComponents.Services;
+using ApiComponents.GraphQL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -90,6 +92,16 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 
+// --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
+// Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.
+// HotChocolate v15 inyectará el DbContext automáticamente porque ya está registrado en builder.Services.
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType<Query>()           // Registra la clase donde definimos las consultas
+    .AddProjections()                // Permite que el SQL solo traiga las columnas pedidas desde el Front
+    .AddFiltering()                  // Habilita filtros avanzados (where)
+    .AddSorting();                   // Habilita ordenamiento dinámico (orderby)
+
 // --- 6. CONFIGURAR JWT ---
 var jwtKey = builder.Configuration["Jwt:Key"];
 // Validación de seguridad para evitar el crash 500.30 si falta la key
@@ -129,6 +141,8 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // --- 8. MIDDLEWARES (Orden Crítico) ---
+// UseCors: Permite (o deniega) que aplicaciones desde otros dominios (como mi app de Angular) consuman la API.
+app.UseCors("AllowAngular");
 
 // UseSwagger(); genera el archivo JSON con la definición. 
 app.UseSwagger();
@@ -143,14 +157,14 @@ app.UseSwaggerUI(c =>
 app.UseHttpsRedirection();
 // UseRouting: Este es el "GPS". Analiza la URL y decide a qué controlador pertenece la petición. Antes de CORS y de la Autorización para que el sistema sepa qué reglas aplicar a esa ruta específica.
 app.UseRouting();
-// UseCors: Permite (o deniega) que aplicaciones desde otros dominios (como mi app de Angular) consuman la API.
-app.UseCors("AllowAngular");
 // UseAuthentication: "¿Quién eres?". Verifica si traes un token válido o una cookie.
 app.UseAuthentication();
 // UseAuthorization: "¿Tienes permiso?".Una vez que sabemos quién eres, este middleware revisa si tu rol te permite entrar a ese endpoint.
 app.UseAuthorization();
 // MapControllers: Es el final del camino. Ejecuta la lógica de tu controlador.
 app.MapControllers();
+// MapGraphQL: Habilita el endpoint único para GraphQL (/graphql)
+app.MapGraphQL("/graphql");
 
 // --- 9. MIGRACIONES Y SEED DATA ---
 using (var scope = app.Services.CreateScope())

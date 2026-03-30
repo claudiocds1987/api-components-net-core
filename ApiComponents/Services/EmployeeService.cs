@@ -29,7 +29,8 @@ public class EmployeeService(IEmployeeRepository employeeRepository) : IEmployee
     public async Task UpdateEmployeeAsync(int id, Employee employee)
     {
         if (!await employeeRepository.ExistsAsync(id))
-            throw new KeyNotFoundException($"Empleado con ID {id} no encontrado.");
+            // CAMBIO AQUÍ: Especificamos el namespace de System para evitar conflicto con GraphQL
+            throw new System.Collections.Generic.KeyNotFoundException($"Empleado con ID {id} no encontrado.");
 
         await employeeRepository.UpdateAsync(employee);
     }

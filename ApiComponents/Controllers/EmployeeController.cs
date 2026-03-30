@@ -1,6 +1,6 @@
 ﻿using ApiComponents.DTOs;
 using ApiComponents.Models;
-using ApiComponents.Services; // Usamos el namespace del servicio
+using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -13,10 +13,8 @@ namespace ApiComponents.Controllers
     [ApiController]
     public class EmployeeController : ControllerBase
     {
-        //  Inyección de la Interfaz de Servicio 🌟
         private readonly IEmployeeService _employeeService;
 
-        // Constructor con inyección de dependencia del servicio
         public EmployeeController(IEmployeeService employeeService)
         {
             _employeeService = employeeService;
@@ -46,15 +44,13 @@ namespace ApiComponents.Controllers
             try
             {
                 var employee = await _employeeService.GetEmployeeByIdAsync(id);
-                return employee; // ASP.NET Core automáticamente devuelve 200 OK
+                return employee;
             }
-            catch (KeyNotFoundException)
+            // CAMBIO AQUÍ: Nombre completo para evitar ambigüedad con GreenDonut (GraphQL)
+            catch (System.Collections.Generic.KeyNotFoundException)
             {
-                // El servicio lanza KeyNotFoundException si el empleado no existe
                 return NotFound();
             }
-            // NOTA: Si el servicio lanza una ArgumentException (ej. ID inválido),
-            // se podría atrapar aquí para devolver un BadRequest (400).
         }
 
         // --- UPDATE: PUT ---
@@ -68,17 +64,15 @@ namespace ApiComponents.Controllers
 
             try
             {
-                // Delega la lógica de actualización al servicio
                 await _employeeService.UpdateEmployeeAsync(id, employee);
             }
-            catch (KeyNotFoundException)
+            // CAMBIO AQUÍ: Nombre completo
+            catch (System.Collections.Generic.KeyNotFoundException)
             {
-                return NotFound(); // El servicio no encontró el empleado
+                return NotFound();
             }
-            // En una implementación real, aquí se podrían capturar excepciones de validación
-            // lanzadas por el servicio para devolver un BadRequest (400).
 
-            return NoContent(); // 204 No Content, estándar para PUT exitoso
+            return NoContent();
         }
 
         // --- CREATE: POST (Individual) ---
@@ -87,15 +81,11 @@ namespace ApiComponents.Controllers
         {
             try
             {
-                // Delega la lógica de creación (incluyendo validaciones de negocio) al servicio
                 await _employeeService.AddEmployeeAsync(employee);
-
-                // Devuelve 201 CreatedAtAction
                 return CreatedAtAction("GetEmployee", new { id = employee.id }, employee);
             }
             catch (ApplicationException ex)
             {
-                // Capturar excepciones de validación de negocio (ej. "empleado menor de 18")
                 return BadRequest(ex.Message);
             }
         }
@@ -104,7 +94,6 @@ namespace ApiComponents.Controllers
         [HttpPost("batch")]
         public async Task<IActionResult> PostEmployeeList([FromBody] List<Employee> employees)
         {
-            // 1. Validación inicial
             if (employees == null || !employees.Any())
             {
                 return BadRequest("La lista de empleados no puede estar vacía.");
@@ -112,10 +101,8 @@ namespace ApiComponents.Controllers
 
             try
             {
-                // 2. Llamada al servicio que procesa por lotes de 20
                 await _employeeService.AddEmployeeListAsync(employees);
 
-                // 3. Respuesta exitosa
                 return Ok(new
                 {
                     message = "Procesamiento por lotes completado con éxito.",
@@ -124,17 +111,14 @@ namespace ApiComponents.Controllers
             }
             catch (ApplicationException ex)
             {
-                // Errores de lógica de negocio (ej: más de 500 registros)
                 return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                // Errores inesperados (Conexión, base de datos, etc.)
-                // Nota: En producción podrías querer loguear 'ex' en un archivo
                 return StatusCode(500, new
                 {
                     error = "Ocurrió un error al procesar la lista en el servidor.",
-                    details = ex.Message // Esto te ayudará a ver el error real en Swagger
+                    details = ex.Message
                 });
             }
         }
@@ -145,12 +129,11 @@ namespace ApiComponents.Controllers
         {
             try
             {
-                // Delega la lógica de eliminación al servicio
                 await _employeeService.DeleteEmployeeAsync(id);
-
-                return NoContent(); // 204 No Content, estándar para DELETE exitoso
+                return NoContent();
             }
-            catch (KeyNotFoundException)
+            // CAMBIO AQUÍ: Nombre completo
+            catch (System.Collections.Generic.KeyNotFoundException)
             {
                 return NotFound();
             }
