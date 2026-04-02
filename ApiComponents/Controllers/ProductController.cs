@@ -19,8 +19,8 @@ public class ProductController(IProductService productService) : ControllerBase
       [FromQuery] int? brandId = null,
       [FromQuery] decimal? minPrice = null,
       [FromQuery] decimal? maxPrice = null,
-      [FromQuery] string? sortBy = "id",
-      [FromQuery] string? order = "desc",
+      [FromQuery] string? sortBy = "rating", // Por defecto ordenamos por rating, pero el cliente puede elegir otro campo
+      [FromQuery] string? order = "asc", // Por defecto ordenamos de forma ascendente
       [FromQuery] bool? isActive = true)
     {
         try

@@ -79,13 +79,12 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                 ? query.OrderByDescending(p => p.title)
                 : query.OrderBy(p => p.title);
         }
-        else // Por defecto si no es precio ni título (o si es "id")
+        else // Por defecto si no es precio ni título por default es por "rating" "asc"
         {
-            // Si el usuario pide explícitamente ID Ascendente lo respetamos, 
-            // de lo contrario, por defecto es ID Descendente.
+
             query = order?.ToLower() == "asc"
-                ? query.OrderBy(p => p.id)
-                : query.OrderByDescending(p => p.id);
+                ? query.OrderBy(p => p.rating)
+                : query.OrderByDescending(p => p.rating);
         }
 
         // 7. Paginación y ejecución de la consulta
