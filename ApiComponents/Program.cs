@@ -100,7 +100,8 @@ builder.Services
     .AddQueryType<Query>()           // Registra la clase donde definimos las consultas
     .AddProjections()                // Permite que el SQL solo traiga las columnas pedidas desde el Front
     .AddFiltering()                  // Habilita filtros avanzados (where)
-    .AddSorting();                   // Habilita ordenamiento dinámico (orderby)
+    .AddSorting()                   // Habilita ordenamiento dinámico (orderby)
+    .ModifyCostOptions(o => o.MaxFieldCost = 10000);
 
 // --- 6. CONFIGURAR JWT ---
 var jwtKey = builder.Configuration["Jwt:Key"];
