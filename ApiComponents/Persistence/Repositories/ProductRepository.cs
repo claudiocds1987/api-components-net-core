@@ -138,7 +138,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
         // 5. Conteo Total (Importante hacerlo antes de la paginación)
         int totalCount = await query.CountAsync();
 
-        // 6. Ordenamiento Dinámico
+        // 6. Ordenamiento Dinámico corregido
         if (sortBy?.ToLower() == "price")
         {
             query = order?.ToLower() == "asc"
@@ -147,19 +147,24 @@ public class ProductRepository(AppDbContext db) : IProductRepository
         }
         else if (sortBy?.ToLower() == "title")
         {
-            query = order?.ToLower() == "desc"
-                ? query.OrderByDescending(p => p.title)
-                : query.OrderBy(p => p.title);
+            query = order?.ToLower() == "asc"
+                ? query.OrderBy(p => p.title)
+                : query.OrderByDescending(p => p.title);
         }
-        else // Por defecto si no es precio ni título (o si es "id")
+        // Agregamos explícitamente el caso de ID
+        else if (sortBy?.ToLower() == "id")
         {
-            // Si el usuario pide explícitamente ID Ascendente lo respetamos, 
-            // de lo contrario, por defecto es ID Descendente.
             query = order?.ToLower() == "asc"
                 ? query.OrderBy(p => p.id)
                 : query.OrderByDescending(p => p.id);
         }
+        else // Por defecto (si sortBy viene nulo o es otra cosa)
+        {
+            query = query.OrderByDescending(p => p.id);
+        }
+
         // 7. Paginación y ejecución de la consulta
+        // IMPORTANTE: Asegúrate de que el Skip/Take vaya al final
         var items = await query
             .Skip(((page ?? 1) - 1) * (size ?? 25))
             .Take(size ?? 25)
@@ -170,8 +175,12 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                 sku = p.sku,
                 price = p.price,
                 stock = p.stock,
+                categoryId = p.categoryId,
+                brandId = p.brandId,
                 isActive = p.isActive,
                 imageUrl = p.thumbnail
+
+                // Nota: Asegúrate de incluir aquí categoryId y brandId si los necesitas en el mapeo del Excel
             })
             .ToListAsync();
 
