@@ -35,8 +35,7 @@ namespace ApiComponents.Controllers
             return Ok(response);
         }
 
-        // Nuevo: Un endpoint específico para cuando el usuario ya está viendo 
-        // un producto puntual
+        // endpoint específico para cuando el usuario ya está viendo un producto puntual
         [HttpPost("seller-expert")]
         public async Task<IActionResult> SellerExpert([FromBody] GeminiProductRequestDto request)
         {

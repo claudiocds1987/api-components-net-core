@@ -76,7 +76,8 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
+//builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
+builder.Services.AddScoped<IGeminiRepository, GeminiRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
@@ -86,7 +87,7 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
@@ -96,6 +97,7 @@ builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 // Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.
 // HotChocolate v15 inyectará el DbContext automáticamente porque ya está registrado en builder.Services.
 builder.Services
+    .AddHttpClient()
     .AddGraphQLServer()
     .AddQueryType<Query>()           // Registra la clase donde definimos las consultas
     .AddProjections()                // Permite que el SQL solo traiga las columnas pedidas desde el Front
