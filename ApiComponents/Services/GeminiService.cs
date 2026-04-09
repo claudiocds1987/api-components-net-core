@@ -10,13 +10,11 @@ namespace ApiComponents.Services
     {
         private readonly IGeminiRepository _aiRepo;
         private readonly IProductRepository _productRepo;
-        // private readonly HttpClient _httpClient;
 
         public GeminiService(IGeminiRepository aiRepo, IProductRepository productRepo)
         {
             _aiRepo = aiRepo;
             _productRepo = productRepo;
-            //_httpClient = httpClient;
         }
 
         public async Task<GeminiChatResponseDto> QueryCatalogAsync(string userQuestion)
@@ -128,48 +126,6 @@ namespace ApiComponents.Services
                 return new List<ProductMatch>();
             }
         }
-
-        //private async Task<string> GetIntentCategoryFromAI(string userText)
-        //{
-        //    try
-        //    {
-        //        var prompt =
-        //            $@"Actúa como un clasificador semántico para un catálogo de productos.
-
-        //    CATEGORÍAS DISPONIBLES EN EL SISTEMA:
-        //    - Ropa: 'mens-shirts', 'womens-dresses', 'tops'
-        //    - Calzado: 'mens-shoes', 'womens-shoes'
-        //    - Relojes: 'mens-watches', 'womens-watches'
-        //    - Accesorios: 'womens-bags', 'womens-jewellery', 'sunglasses'
-        //    - Tecnología: 'laptops', 'smartphones', 'tablets', 'mobile-accessories'
-        //    - Hogar/Otros: 'fragrances', 'beauty', 'skin-care', 'furniture', 'groceries', 'home-decoration', 'kitchen-accessories'
-
-        //    REGLAS CRÍTICAS:
-        //    1. Si el usuario pregunta de forma GENERAL (ej: 'relojes', 'calzado', 'zapatos', 'ropa'), responde ÚNICAMENTE la palabra raíz en inglés: 'watches', 'shoes', 'shirts' o 'dresses'.
-        //    2. Si el usuario especifica GÉNERO (ej: 'relojes de mujer', 'zapatos para hombre'), responde la categoría completa: 'womens-watches' o 'mens-shoes'.
-        //    3. Si el usuario busca ofertas, descuentos o promociones, responde: 'OFFERS'.
-        //    4. Si no detectas ninguna categoría del catálogo, responde: 'NONE'.
-
-        //    EJEMPLOS:
-        //    - '¿tienen relojes?' -> watches
-        //    - 'relojes de mujer' -> womens-watches
-        //    - 'zapatillas' -> shoes
-        //    - 'tenis de hombre' -> mens-shoes
-        //    - 'perfumes' -> fragrances
-
-        //    Entrada del usuario: '{userText}'
-        //    Respuesta (SOLO la palabra clave):";
-
-        //        var response = await _aiRepo.GenerateTextAsync(prompt);
-        //        return response.Trim().ToLower();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // En caso de saturación de exceder el límite de prompts, Gemini devuelve (503) o error de red, registramos el error y devolvemos "none"
-        //        Console.WriteLine($"[IA LOG]: Error al clasificar intención (Gemini 503/Saturado): {ex.Message}");
-        //        return "none";
-        //    }
-        //}
 
         public async Task<string> GetSellerAnswerAsync(GeminiProductRequestDto request)
         {
