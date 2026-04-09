@@ -37,60 +37,40 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     string? order,
     bool? isActive = true)
     {
-        // AGREGAMOS LOS .Include() PARA QUE LA IA PUEDA VER LOS NOMBRES
         var query = db.Products
-            .Include(p => p.category) // <--- CRUCIAL: Trae el nombre de la categoría
-            .Include(p => p.brand)    // <--- CRUCIAL: Trae el nombre de la marca
-            .Include(p => p.tags)     // Por si quieres filtrar por etiquetas
+            .Include(p => p.category)
+            .Include(p => p.brand)
+            .Include(p => p.tags)
             .AsQueryable();
 
-        // 0. Filtrado por Estado (Soft Delete)
         if (isActive.HasValue)
             query = query.Where(p => p.isActive == isActive.Value);
 
-        // 1. Filtrado por Texto
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.title.Contains(search) || p.description.Contains(search));
 
-        // 2. Filtrado por Categoría
         if (categoryId.HasValue && categoryId > 0)
             query = query.Where(p => p.categoryId == categoryId);
 
-        // 3. Filtrado por Marca
         if (brandId.HasValue && brandId > 0)
             query = query.Where(p => p.brandId == brandId);
 
-        // 4. Filtrado por Rango de Precio
         if (minPrice.HasValue)
             query = query.Where(p => p.price >= minPrice);
 
         if (maxPrice.HasValue)
             query = query.Where(p => p.price <= maxPrice);
 
-        // 5. Conteo Total
         int totalCount = await query.CountAsync();
 
-        // 6. Ordenamiento Dinámico
-        if (sortBy?.ToLower() == "price")
+        // Ordenamiento
+        query = sortBy?.ToLower() switch
         {
-            query = order?.ToLower() == "asc"
-                ? query.OrderBy(p => p.price)
-                : query.OrderByDescending(p => p.price);
-        }
-        else if (sortBy?.ToLower() == "title")
-        {
-            query = order?.ToLower() == "desc"
-                ? query.OrderByDescending(p => p.title)
-                : query.OrderBy(p => p.title);
-        }
-        else
-        {
-            query = order?.ToLower() == "asc"
-                ? query.OrderBy(p => p.rating)
-                : query.OrderByDescending(p => p.rating);
-        }
+            "price" => order?.ToLower() == "asc" ? query.OrderBy(p => p.price) : query.OrderByDescending(p => p.price),
+            "title" => order?.ToLower() == "desc" ? query.OrderByDescending(p => p.title) : query.OrderBy(p => p.title),
+            _ => order?.ToLower() == "asc" ? query.OrderBy(p => p.rating) : query.OrderByDescending(p => p.rating)
+        };
 
-        // 7. Paginación y ejecución
         var items = await query
             .Skip(((page ?? 1) - 1) * (size ?? 25))
             .Take(size ?? 25)

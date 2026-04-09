@@ -3,11 +3,11 @@
     // Este es el objeto principal que recibe la lista
     public class DummyProductResponseDto
     {
-        public List<DummyProductDto> Products { get; set; } = new();
+        public List<ProductDto> Products { get; set; } = new();
     }
 
     // Este es el detalle de cada producto que viene de DummyJSON
-    public class DummyProductDto
+    public class ProductDto
     {
         public int id { get; set; }
         public string title { get; set; } = string.Empty;

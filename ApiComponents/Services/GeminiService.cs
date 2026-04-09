@@ -1,7 +1,8 @@
-﻿using ApiComponents.Persistence.Repositories;
-using ApiComponents.DTOs;
-using System.Text.Json;
+﻿using ApiComponents.DTOs;
+using ApiComponents.Persistence.Repositories;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ApiComponents.Services
 {
@@ -20,15 +21,15 @@ namespace ApiComponents.Services
 
         public async Task<GeminiChatResponseDto> QueryCatalogAsync(string userQuestion)
         {
-            // 1. Carga de productos desde la base de datos
-            var dbResult = await _productRepo.GetProductsAsync(page: 1, size: 200, isActive: true);
+            // 1. Traemos los productos (solo los campos que Gemini necesita leer)
+            var dbResult = await _productRepo.GetProductsAsync(page: 1, size: 250, isActive: true);
 
-            var allProducts = dbResult.Items.Select(p => new DummyProductDto
+            var allProducts = dbResult.Items.Select(p => new ProductDto
             {
                 id = p.id,
                 title = p.title,
                 description = p.description,
-                price = (decimal)p.price,
+                price = p.price,
                 discountPercentage = (double)p.discountPercentage,
                 rating = (double)p.rating,
                 stock = p.stock,
@@ -38,113 +39,96 @@ namespace ApiComponents.Services
                 tags = p.tags?.Select(t => t.tagName).ToList() ?? new List<string>()
             }).ToList();
 
-            // LOG 1: Verificar si están llegando productos de la DB
-            Console.WriteLine($"DEBUG: [Fase 1] Productos cargados desde DB: {allProducts.Count}");
+            // 2. Armamos un catálogo resumido para Gemini (sin description larga → ahorra tokens)
+            var catalogSummary = allProducts.Select(p => new
+            {
+                p.id,
+                p.title,
+                p.brand,
+                p.category,
+                p.tags
+            });
 
-            // 2. IA: Clasificar la intención del usuario
-            string intentCategory = await GetIntentCategoryFromAI(userQuestion);
+            var catalogJson = JsonSerializer.Serialize(catalogSummary);
 
-            // LOG 2: Ver qué categoría decidió la IA
-            Console.WriteLine($"DEBUG: [Fase 2] La IA determinó la categoría: '{intentCategory}'");
+            // 3. Gemini hace TODO el razonamiento semántico y devuelve JSON con IDs + scores
+            var matchedIds = await GetSemanticMatchesFromAI(userQuestion, catalogJson);
 
-            // Función auxiliar de normalización
-            string NormalizeText(string s) => s?.ToLower()
-                .Replace("á", "a").Replace("é", "e").Replace("í", "i").Replace("ó", "o").Replace("ú", "u")
-                .Trim() ?? "";
-
-            // 3. Tokenización de la pregunta del usuario
-            var keywords = NormalizeText(userQuestion)
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Where(w => w.Length > 2)
+            // 4. C# solo filtra por los IDs que Gemini eligió y respeta el orden por score
+            var filteredProducts = matchedIds
+                .OrderByDescending(m => m.Score)
+                .Select(m => allProducts.FirstOrDefault(p => p.id == m.Id))
+                .Where(p => p != null)
                 .ToList();
 
-            Console.WriteLine($"DEBUG: [Fase 3] Keywords extraídas: {string.Join(", ", keywords)}");
-
-            List<DummyProductDto> products = new();
-
-            // 4. PASO A: Intentar por Categoría (Comparación robusta)
-            if (intentCategory != "none" && intentCategory != "OFFERS")
-            {
-                products = allProducts
-                    .Where(p => string.Equals(NormalizeText(p.category), NormalizeText(intentCategory), StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                Console.WriteLine($"DEBUG: [Fase 4] Productos encontrados en categoría '{intentCategory}': {products.Count}");
-
-                // Refinamiento por palabras clave dentro de la categoría
-                if (products.Any())
-                {
-                    var refined = products.Where(p =>
-                        keywords.Any(k => NormalizeText(p.title).Contains(k)) ||
-                        keywords.Any(k => NormalizeText(p.description).Contains(k))
-                    ).ToList();
-
-                    if (refined.Any())
-                    {
-                        products = refined;
-                        Console.WriteLine($"DEBUG: [Fase 4b] Refinamiento exitoso dentro de categoría. Items: {products.Count}");
-                    }
-                }
-            }
-
-            // 5. PASO B: Respaldo (Si la categoría falló o dio 0, buscamos en TODO el catálogo)
-            if (!products.Any())
-            {
-                Console.WriteLine("DEBUG: [Fase 5] No hubo resultados por categoría. Iniciando búsqueda general por texto libre...");
-
-                products = allProducts.Where(p =>
-                    keywords.Any(k => NormalizeText(p.title).Contains(k)) ||
-                    keywords.Any(k => NormalizeText(p.description).Contains(k)) ||
-                    keywords.Any(k => NormalizeText(p.category).Contains(k))
-                ).ToList();
-
-                Console.WriteLine($"DEBUG: [Fase 5] Resultados búsqueda general: {products.Count}");
-            }
-
-            // 6. RESPUESTA FINAL
-            Console.WriteLine($"DEBUG: [Final] Enviando al front {products.Count} productos.");
-
-            if (products.Any())
+            if (filteredProducts.Any())
             {
                 return new GeminiChatResponseDto
                 {
-                    Response = $"¡Claro! He encontrado {products.Count} opciones de '{userQuestion}' para ti:",
-                    Products = products
+                    Response = $"¡Claro! Encontré {filteredProducts.Count} opciones para \"{userQuestion}\":",
+                    Products = filteredProducts!
                 };
             }
 
             return new GeminiChatResponseDto
             {
-                Response = $"No encontré resultados exactos para '{userQuestion}'. ¿Te gustaría intentar con palabras más simples?",
-                Products = new List<DummyProductDto>()
+                Response = $"No encontré productos para \"{userQuestion}\". ¿Podés intentar con otros términos?",
+                Products = new List<ProductDto>()
             };
         }
 
-        private async Task<string> GetIntentCategoryFromAI(string userText)
+        private async Task<List<ProductMatch>> GetSemanticMatchesFromAI(string userQuestion, string catalogJson)
         {
+            var prompt = $@"Sos un motor de búsqueda de productos. Tu tarea es encontrar los productos más relevantes para la consulta del usuario.
+
+            CATÁLOGO (JSON):
+            {catalogJson}
+
+            CONSULTA DEL USUARIO: ""{userQuestion}""
+
+            INSTRUCCIONES:
+            - Analizá semánticamente la consulta: detectá categoría, género, color, material, estilo, uso, marca, precio aproximado, etc.
+            - Traducí mentalmente los términos (""plateado"" = silver, ""reloj"" = watch, ""mujer"" = womens, ""perfume"" = fragrance, etc.)
+            - Buscá coincidencias en title, brand, category y tags de cada producto.
+            - Excluí productos del género opuesto si la consulta especifica género.
+            - Asigná un score de 0 a 100 según relevancia.
+            - Devolvé ÚNICAMENTE un JSON válido con este formato exacto, sin texto adicional:
+            {{""matches"": [{{""id"": 1, ""score"": 95}}, {{""id"": 2, ""score"": 80}}]}}
+            - Si no hay resultados relevantes devolvé: {{""matches"": []}}
+            - Máximo 20 resultados, solo los de score >= 40.";
+
             try
             {
-                var prompt = $@"Eres un clasificador de categorías para una tienda.
-        TU SALIDA DEBE SER ÚNICAMENTE UNA DE ESTAS CATEGORÍAS:
-        laptops, smartphones, fragrances, skin-care, groceries, home-decoration, 
-        furniture, tops, womens-dresses, womens-shoes, mens-shirts, mens-shoes, 
-        mens-watches, womens-watches, womens-bags, womens-jewellery, sunglasses, 
-        mobile-accessories, sports-accessories, motorcycle
+                var rawResponse = await _aiRepo.GenerateTextAsync(prompt);
 
-        REGLAS:
-        - Si el usuario pide algo de mujer y es un reloj, responde: womens-watches
-        - Si pide algo de hombre y es un reloj, responde: mens-watches
-        - Si busca ofertas, responde: OFFERS
-        - Si no es nada de la lista, responde: none
+                // TEMPORAL: loguea la respuesta cruda para ver qué devuelve Gemini
+                Console.WriteLine("=== GEMINI RAW RESPONSE ===");
+                Console.WriteLine(rawResponse);
+                Console.WriteLine("===========================");
 
-        Usuario dice: '{userText}'
-        Respuesta:";
+                var cleanJson = rawResponse
+                    .Replace("```json", "")
+                    .Replace("```", "")
+                    .Trim();
 
-                var response = await _aiRepo.GenerateTextAsync(prompt);
-                return response.Trim().ToLower();
+                Console.WriteLine("=== CLEAN JSON ===");
+                Console.WriteLine(cleanJson);
+                Console.WriteLine("==================");
+
+                var result = JsonSerializer.Deserialize<SemanticMatchResponse>(cleanJson);
+
+                Console.WriteLine($"=== MATCHES COUNT: {result?.Matches?.Count ?? 0} ===");
+
+                return result?.Matches ?? new List<ProductMatch>();
             }
-            catch { return "none"; }
+            catch (Exception ex)
+            {
+                // Antes retornaba vacío sin que supieras por qué
+                Console.WriteLine($"=== ERROR EN DESERIALIZE: {ex.Message} ===");
+                return new List<ProductMatch>();
+            }
         }
+
         //private async Task<string> GetIntentCategoryFromAI(string userText)
         //{
         //    try
@@ -221,6 +205,22 @@ namespace ApiComponents.Services
             var prompt = $@"Extrae el objeto de búsqueda de: '{text}'. Responde solo JSON: {{""busqueda"": ""valor""}}";
             return await _aiRepo.GenerateTextAsync(prompt);
         }
+    }
+
+
+    public class SemanticMatchResponse
+    {
+        [JsonPropertyName("matches")]
+        public List<ProductMatch> Matches { get; set; } = new();
+    }
+
+    public class ProductMatch
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("score")]
+        public int Score { get; set; }
     }
 }
 

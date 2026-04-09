@@ -9,7 +9,7 @@ namespace ApiComponents.Persistence.Repositories
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
-        private const string ModelName = "gemini-2.5-flash";
+        private const string ModelName = "gemini-2.5-flash"; // si hay demanda probar "gemini-2.5-flash" gemini-3-flash-preview"
 
         public GeminiRepository(IConfiguration config, HttpClient httpClient)
         {
