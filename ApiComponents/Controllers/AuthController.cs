@@ -30,4 +30,19 @@ public class AuthController(IAuthService authService) : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> GetMe()
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        // El servicio ya devuelve el UserResponseDto
+        var userDto = await authService.GetUserByUsernameAsync(username);
+
+        if (userDto == null) return NotFound();
+
+        return Ok(userDto);
+    }
 }

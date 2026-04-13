@@ -19,6 +19,27 @@ namespace ApiComponents.Services
             _config = config;
         }
 
+        public async Task<UserResponseDto?> GetUserByUsernameAsync(string username)
+        {
+            // 1. Buscamos el usuario en la DB (Entidad)
+            var user = await _repository.GetByUsername(username);
+
+            if (user == null) return null;
+
+            // 2. Mapeamos manualmente la Entidad al DTO 
+            // (Esto es más seguro porque para no enviar el passwordHash al frontend)
+            return new UserResponseDto
+            {
+                id = user.id,
+                username = user.username,
+                email = user.email,
+                firstName = user.firstName,
+                lastName = user.lastName,
+                role = user.role,
+                token = "" // En el endpoint /me, el token ya lo tiene el cliente, lo dejo vacio
+            };
+        }
+
         public async Task<UserResponseDto?> Login(string username, string password)
         {
             var user = await _repository.GetByUsername(username);

@@ -139,6 +139,34 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "API de Componentes - .NET 8"
     });
+
+    // CONFIGURACIÓN PARA JWT EN SWAGGER
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        // Al usar SecuritySchemeType.Http y Scheme = "bearer", 
+        // Swagger añade automáticamente la palabra "Bearer "
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Pegue directamente su token JWT aquí."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
 });
 
 var app = builder.Build();
