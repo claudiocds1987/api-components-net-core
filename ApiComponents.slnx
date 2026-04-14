@@ -2,6 +2,7 @@
   <Folder Name="/Elementos de la solución/">
     <File Path="APUNTES.txt" />
     <File Path="CREAR-PASO-A-PASO-UNA-ENTIDAD-TABLA.txt" />
+    <File Path="explicacion-AuthController.md" />
     <File Path="flujo-frontend-GeminiController.md" />
     <File Path="GRAPHQL_IMPLEMENTATION.md" />
     <File Path="hacer-publish.txt" />
