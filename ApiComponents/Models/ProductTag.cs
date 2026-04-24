@@ -4,7 +4,7 @@ namespace ApiComponents.Models
 {
     public class ProductTag
     {
-        public int id { get; set; }
+        public int? id { get; set; }
 
         [Required(ErrorMessage = "El nombre del tag es obligatorio.")]
         [StringLength(200)]

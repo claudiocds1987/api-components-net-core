@@ -174,7 +174,8 @@ var app = builder.Build();
 // --- 8. MIDDLEWARES (Orden Crítico) ---
 // UseCors: Permite (o deniega) que aplicaciones desde otros dominios (como mi app de Angular) consuman la API.
 app.UseCors("AllowAngular");
-
+// app.UseStaticFiles(): Permite leer la carpeta en donde estan las imagenes wwwroot/uploads
+app.UseStaticFiles();
 // UseSwagger(); genera el archivo JSON con la definición. 
 app.UseSwagger();
 // UseSwaggerUI monta la interfaz gráfica para probar los endpoints.

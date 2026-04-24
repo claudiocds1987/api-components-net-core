@@ -75,23 +75,50 @@ public class ProductController(IProductService productService) : ControllerBase
         return Ok(product);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product product)
+
+    [HttpPost]
+    public async Task<IActionResult> CreateProduct([FromBody] ProductRequestDTo product)
     {
-        // Validación básica de coherencia
-        if (id != product.id)
-            return BadRequest("El ID de la URL no coincide con el ID del cuerpo de la petición.");
+        if (product == null) return BadRequest(new { message = "El producto no puede ser nulo." });
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
         try
         {
-            await productService.UpdateProductAsync(product);
-            return NoContent();
+            await productService.CreateProductAsync(product, Request.Scheme, Request.Host.Value);
+            return Ok(new { message = "Producto creado con éxito", data = product });
         }
         catch (Exception ex)
         {
-            // Gracias al Fluent API, si intentas actualizar un producto con una CategoryId 
-            // que no existe, saltará una excepción de base de datos que caerá aquí.
-            return NotFound(new { message = ex.Message });
+            return StatusCode(500, new
+            {
+                message = "Error crítico al procesar el producto",
+                details = ex.Message,
+                stack = ex.StackTrace,
+                inner = ex.InnerException?.Message
+            });
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductRequestDTo product)
+    {
+        if (id != product.id)
+            return BadRequest(new { message = "El ID no coincide." });
+
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        try
+        {
+            await productService.UpdateProductAsync(product, Request.Scheme, Request.Host.Value);
+            return Ok(new { message = "Producto actualizado correctamente", data = product });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                message = "Error al actualizar el producto",
+                details = ex.Message
+            });
         }
     }
 

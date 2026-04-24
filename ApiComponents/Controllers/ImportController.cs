@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("api/import")]
+[Route("api/massiveImport")]
 public class ImportController(IProductService productService) : ControllerBase
 {
     [HttpPost("products")]

@@ -24,7 +24,7 @@ namespace ApiComponents.Services
 
             var allProducts = dbResult.Items.Select(p => new ProductDto
             {
-                id = p.id,
+                id = p.id ?? 0,
                 title = p.title,
                 description = p.description,
                 price = p.price,

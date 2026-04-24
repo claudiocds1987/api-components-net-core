@@ -32,8 +32,10 @@ namespace ApiComponents.Persistence.Repositories
             string? sortBy = "title",
             string? order = "asc",
             bool? isActive = null); // El admin suele querer ver todos por defecto activos e inactivos
+
+        Task CreateProduct(ProductRequestDTo product, string scheme, string host);
         Task DeleteProduct(int id);
-        Task UpdateProduct(Product product);
+        Task UpdateProduct(ProductRequestDTo product, string scheme, string host);
         Task<bool> ExistProduct(string title); // Validamos por título ya que el ID es automático
     }
 }

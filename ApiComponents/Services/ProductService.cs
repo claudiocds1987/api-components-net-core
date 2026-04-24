@@ -229,6 +229,11 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
         };
     }
 
-    public async Task UpdateProductAsync(Product product) => await productRepo.UpdateProduct(product);
+    public async Task CreateProductAsync(ProductRequestDTo product, string scheme, string host)
+    {
+        await productRepo.CreateProduct(product, scheme, host);
+    }
+    public async Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host)
+    => await productRepo.UpdateProduct(product, scheme, host);
     public async Task DeleteProductAsync(int id) => await productRepo.DeleteProduct(id);
 }

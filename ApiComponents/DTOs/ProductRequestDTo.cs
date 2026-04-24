@@ -1,9 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ApiComponents.Models;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace ApiComponents.Models
+namespace ApiComponents.DTOs
 {
-    public class Product
+    public class ProductRequestDTo
     {
         // id null, undefined o que el campo no venga (para el create product el id es generado por la DB, para el update product el id es obligatorio)
         public int? id { get; set; }
@@ -61,7 +62,6 @@ namespace ApiComponents.Models
         // Tablas hijas inicializadas para evitar nulls
         public List<ProductImage> images { get; set; } = [];
         public List<ProductTag> tags { get; set; } = [];
-        public List<ProductReview> reviews { get; set; } = [];
 
         public bool isActive { get; set; } = true;
     }

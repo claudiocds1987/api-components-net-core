@@ -34,6 +34,8 @@ public interface IProductService
          string? order = "asc",
          bool? isActive = null); // "null" por que el admin suele querer ver todos por defecto activos e inactivos
 
-    Task UpdateProductAsync(Product product);
+    Task CreateProductAsync(ProductRequestDTo product, string scheme, string host);
+
+    Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host);
     Task DeleteProductAsync(int id);
 }
