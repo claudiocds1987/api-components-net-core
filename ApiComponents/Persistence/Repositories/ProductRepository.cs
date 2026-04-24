@@ -291,15 +291,30 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                 existingProduct.description = productDto.description;
                 existingProduct.price = productDto.price;
                 existingProduct.discountPercentage = productDto.discountPercentage;
+                existingProduct.rating = productDto.rating; // Generalmente es calculado, pero lo incluimos si el DTO lo trae
                 existingProduct.stock = productDto.stock;
                 existingProduct.sku = productDto.sku;
+
+                // Propiedades de Medidas y Peso
+                existingProduct.weight = productDto.weight;
+                existingProduct.width = productDto.width;
+                existingProduct.height = productDto.height;
+                existingProduct.depth = productDto.depth;
+
+                // Propiedades de Logística y Garantía
+                existingProduct.warrantyInformation = productDto.warrantyInformation;
+                existingProduct.shippingInformation = productDto.shippingInformation;
+                existingProduct.availabilityStatus = productDto.availabilityStatus;
+                existingProduct.returnPolicy = productDto.returnPolicy;
+                existingProduct.minimumOrderQuantity = productDto.minimumOrderQuantity;
+
+                // Clasificación y Estado
                 existingProduct.categoryId = productDto.categoryId;
                 existingProduct.brandId = productDto.brandId;
                 existingProduct.isActive = productDto.isActive;
-                // ... (agrega el resto de campos como weight, width, etc. igual que en el Create)
 
                 // 3. Actualizamos Imagen Principal (Thumbnail)
-                // Solo procesamos si el front manda una nueva base64
+                // Solo procesamos si el front manda una nueva base64 (cuando importo desde mi pc ej: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...)
                 if (productDto.thumbnail.StartsWith("data:image"))
                 {
                     existingProduct.thumbnail = await fileService.ProcessImage(productDto.thumbnail, scheme, host);
