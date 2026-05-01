@@ -42,7 +42,8 @@ namespace ApiComponents.Persistence.Seed
                     new() { name = "womens-dresses" },
                     new() { name = "womens-jewellery" },
                     new() { name = "womens-shoes" },
-                    new() { name = "womens-watches" }
+                    new() { name = "womens-watches" },
+                    new() { name = "smart-tv" }
                 };
                 await context.ProductCategories.AddRangeAsync(categories);
                 await context.SaveChangesAsync();

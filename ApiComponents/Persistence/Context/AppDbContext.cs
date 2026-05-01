@@ -29,6 +29,8 @@ namespace ApiComponents.Persistence.Context
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<ProductTag> ProductTags { get; set; }
         public DbSet<ProductReview> ProductReviews { get; set; }
+        public DbSet<ProductExtraAttributeDefinition> ProductAttributeDefinitions { get; set; }
+        public DbSet<ProductExtraAttributeValue> ProductAttributeValues { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -63,6 +63,9 @@ namespace ApiComponents.DTOs
         public List<ProductImage> images { get; set; } = [];
         public List<ProductTag> tags { get; set; } = [];
 
+        // Key: Nombre del atributo (o ID de definición), Value: El valor ingresado
+        public List<ExtraAttributeDto> extraAttributes { get; set; } = [];
+
         public bool isActive { get; set; } = true;
     }
 }

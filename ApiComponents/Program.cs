@@ -1,17 +1,12 @@
-using Microsoft.Extensions.DependencyInjection;
 using ApiComponents.Persistence.Context;
 using ApiComponents.Persistence.Repositories;
 using ApiComponents.Persistence.Seed;
 using ApiComponents.Services;
 using ApiComponents.GraphQL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System;
 using System.Net;
 using System.Text;
 
@@ -76,12 +71,12 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-//builder.Services.AddHttpClient<IGeminiRepository, GeminiRepository>();
 builder.Services.AddScoped<IGeminiRepository, GeminiRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
 // ---  INYECCIÓN DE DEPENDENCIAS SERVICIOS ---
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
@@ -92,6 +87,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
+builder.Services.AddScoped<IProductAttributeService, ProductAttributeService>();
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
 // Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.

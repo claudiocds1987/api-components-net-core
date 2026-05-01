@@ -1,12 +1,11 @@
 ﻿namespace ApiComponents.Services;
 
 using ApiComponents.DTOs;
-using ApiComponents.Models;
 
 public interface IProductService
 {
     Task<ImportResultDto> ProcessCsvAsync(IFormFile file);
-    Task<Product?> GetProductByIdAsync(int id);
+    Task<ProductResponseDto?> GetProductByIdAsync(int id);
 
     // endpoint pesado para el E-commerce
     Task<object> GetAllProductsAsync(

@@ -17,13 +17,58 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     public async Task<bool> ExistProduct(string title)
     => await db.Products.AnyAsync(p => EF.Functions.Like(p.title, title));
 
-    public async Task<Product?> GetProduct(int id)
+    // 1. OBTENER UN SOLO PRODUCTO (Simplificado para Angular)
+    public async Task<ProductResponseDto?> GetProduct(int id)
     {
         return await db.Products
-          .Include(p => p.images)
-          .Include(p => p.tags)
-          .Include(p => p.reviews)
-          .FirstOrDefaultAsync(p => p.id == id);
+            .Where(p => p.id == id)
+            .Select(p => new ProductResponseDto
+            {
+                id = p.id ?? 0,
+                title = p.title,
+                description = p.description,
+                price = p.price,
+                discountPercentage = p.discountPercentage,
+                rating = p.rating,
+                stock = p.stock,
+                sku = p.sku,
+                weight = p.weight,
+                width = p.width,
+                height = p.height,
+                depth = p.depth,
+                warrantyInformation = p.warrantyInformation,
+                shippingInformation = p.shippingInformation,
+                availabilityStatus = p.availabilityStatus,
+                returnPolicy = p.returnPolicy,
+                minimumOrderQuantity = p.minimumOrderQuantity,
+                thumbnail = p.thumbnail,
+                categoryId = p.categoryId,
+                brandId = p.brandId,
+                isActive = p.isActive,
+                // Mapeo de Atributos Extra
+                extraAttributes = p.attributeValues.Select(av => new ExtraAttributeDto
+                {
+                    name = av.attributeDefinition.name,
+                    value = av.value,
+                    dataType = av.attributeDefinition.dataType
+                }).ToList(),
+                // Mapeo de Imágenes adicionales
+                images = p.images.Select(img => new ProductImage
+                {
+                    id = img.id,
+                    imageUrl = img.imageUrl,
+                    productId = img.productId
+                }).ToList(),
+
+                // Mapeo de Tags
+                tags = p.tags.Select(tag => new ProductTag
+                {
+                    id = tag.id,
+                    tagName = tag.tagName,
+                    productId = tag.productId
+                }).ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<(List<Product> Items, int TotalCount)> GetProductsAsync(
@@ -42,6 +87,8 @@ public class ProductRepository(AppDbContext db) : IProductRepository
             .Include(p => p.category)
             .Include(p => p.brand)
             .Include(p => p.tags)
+            .Include(p => p.attributeValues)
+                .ThenInclude(av => av.attributeDefinition)
             .AsQueryable();
 
         if (isActive.HasValue)
@@ -82,7 +129,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
 
 
     public async Task<(List<ProductAdminDto> Items, int TotalCount)> GetProductsAdminAsync(
-     int? page,
+    int? page,
     int? size,
     string? search,
     int? categoryId,
@@ -246,6 +293,24 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                     }
                 }
 
+                // 6. attributes delproducto ej pulgadas, dimensiones
+                if (productDto.extraAttributes != null && productDto.extraAttributes.Any())
+                {
+                    foreach (var attr in productDto.extraAttributes)
+                    {
+
+                        if (int.TryParse(attr.name, out int definitionId))
+                        {
+                            await db.ProductAttributeValues.AddAsync(new ProductExtraAttributeValue
+                            {
+                                productId = (int)product.id!,
+                                attributeDefinitionId = definitionId,
+                                value = attr.value ?? string.Empty
+                            });
+                        }
+                    }
+                }
+
                 // Guardamos los hijos (Imágenes y Tags) y confirmamos la transacción de forma atómica.
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -266,7 +331,6 @@ public class ProductRepository(AppDbContext db) : IProductRepository
             }
         });
     }
-
     public async Task UpdateProduct(ProductRequestDTo productDto, string scheme, string host)
     {
         var fileService = new FileService();
@@ -277,52 +341,55 @@ public class ProductRepository(AppDbContext db) : IProductRepository
             using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
-                // 1. Buscamos el producto existente con sus relaciones
+                // 1. Buscamos el producto con sus relaciones cargadas
                 var existingProduct = await db.Products
                     .Include(p => p.images)
                     .Include(p => p.tags)
+                    .Include(p => p.attributeValues)
                     .FirstOrDefaultAsync(p => p.id == productDto.id);
 
                 if (existingProduct == null)
                     throw new Exception($"Producto con ID {productDto.id} no encontrado.");
 
-                // 2. Actualizamos propiedades básicas
+                // 2. Actualización de propiedades básicas
                 existingProduct.title = productDto.title;
                 existingProduct.description = productDto.description;
                 existingProduct.price = productDto.price;
                 existingProduct.discountPercentage = productDto.discountPercentage;
-                existingProduct.rating = productDto.rating; // Generalmente es calculado, pero lo incluimos si el DTO lo trae
+                existingProduct.rating = productDto.rating;
                 existingProduct.stock = productDto.stock;
                 existingProduct.sku = productDto.sku;
 
-                // Propiedades de Medidas y Peso
+                // IMPORTANTE: Aseguramos que estos valores se asignen correctamente
                 existingProduct.weight = productDto.weight;
                 existingProduct.width = productDto.width;
                 existingProduct.height = productDto.height;
                 existingProduct.depth = productDto.depth;
 
-                // Propiedades de Logística y Garantía
-                existingProduct.warrantyInformation = productDto.warrantyInformation;
-                existingProduct.shippingInformation = productDto.shippingInformation;
+                // Logística y Garantía
+                existingProduct.warrantyInformation = productDto.warrantyInformation ?? string.Empty;
+                existingProduct.shippingInformation = productDto.shippingInformation ?? string.Empty;
                 existingProduct.availabilityStatus = productDto.availabilityStatus;
-                existingProduct.returnPolicy = productDto.returnPolicy;
+                existingProduct.returnPolicy = productDto.returnPolicy ?? string.Empty;
                 existingProduct.minimumOrderQuantity = productDto.minimumOrderQuantity;
 
-                // Clasificación y Estado
                 existingProduct.categoryId = productDto.categoryId;
                 existingProduct.brandId = productDto.brandId;
                 existingProduct.isActive = productDto.isActive;
 
-                // 3. Actualizamos Imagen Principal (Thumbnail)
-                // Solo procesamos si el front manda una nueva base64 (cuando importo desde mi pc ej: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...)
-                if (productDto.thumbnail.StartsWith("data:image"))
+                // 3. Imagen Principal
+                if (!string.IsNullOrEmpty(productDto.thumbnail) && productDto.thumbnail.StartsWith("data:image"))
                 {
                     existingProduct.thumbnail = await fileService.ProcessImage(productDto.thumbnail, scheme, host);
                 }
 
-                // 4. Actualizamos Galería (Borrar y Recrear)
+                // 4. Galería de Imágenes (Limpieza y Re-creación segura)
+                // Primero removemos del contexto
                 db.ProductImages.RemoveRange(existingProduct.images);
-                if (productDto.images != null && productDto.images.Any())
+                // Luego limpiamos la lista de la entidad para evitar conflictos de tracking
+                existingProduct.images.Clear();
+
+                if (productDto.images != null)
                 {
                     foreach (var imgDto in productDto.images)
                     {
@@ -330,20 +397,69 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                         {
                             imageUrl = imgDto.imageUrl.StartsWith("data:image")
                                 ? await fileService.ProcessImage(imgDto.imageUrl, scheme, host)
-                                : imgDto.imageUrl // Si ya es URL, la dejamos igual
+                                : imgDto.imageUrl,
+                            productId = existingProduct.id // Aseguramos la relación
                         });
                     }
                 }
 
-                // 5. Actualizamos Tags (Borrar y Recrear)
+                // 5. Tags (Limpieza y Re-creación segura)
                 db.ProductTags.RemoveRange(existingProduct.tags);
-                if (productDto.tags != null && productDto.tags.Any())
+                existingProduct.tags.Clear();
+
+                if (productDto.tags != null)
                 {
                     foreach (var tagDto in productDto.tags)
                     {
-                        existingProduct.tags.Add(new ProductTag { tagName = tagDto.tagName });
+                        existingProduct.tags.Add(new ProductTag
+                        {
+                            tagName = tagDto.tagName,
+                            productId = existingProduct.id!.Value
+                        });
                     }
                 }
+
+                // 6. Atributos Extra     
+                db.ProductAttributeValues.RemoveRange(existingProduct.attributeValues);
+                existingProduct.attributeValues.Clear();
+
+                if (productDto.extraAttributes != null)
+                {
+                    foreach (var attr in productDto.extraAttributes)
+                    {
+                        int? finalDefId = null;
+
+                        // Caso A: El 'name' ya es el ID numérico
+                        if (int.TryParse(attr.name, out int defId))
+                        {
+                            finalDefId = defId;
+                        }
+                        // Caso B: El 'name' es un texto (ej: "sistema operativo"), buscamos el ID
+                        else
+                        {
+                            var definition = await db.ProductAttributeDefinitions
+                                .FirstOrDefaultAsync(x => x.name == attr.name);
+
+                            if (definition != null)
+                            {
+                                finalDefId = definition.id;
+                            }
+                        }
+
+                        // Si logramos obtener un ID (por número o por búsqueda), guardamos el valor
+                        if (finalDefId.HasValue)
+                        {
+                            existingProduct.attributeValues.Add(new ProductExtraAttributeValue
+                            {
+                                attributeDefinitionId = finalDefId!.Value,
+                                value = attr.value
+                            });
+                        }
+                    }
+                }
+
+                // Forzamos que EF detecte los cambios en la entidad principal
+                db.Entry(existingProduct).State = EntityState.Modified;
 
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();

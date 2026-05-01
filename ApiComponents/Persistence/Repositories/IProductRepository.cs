@@ -7,7 +7,8 @@ namespace ApiComponents.Persistence.Repositories
     {
 
         Task AddProductsList(List<Product> products);
-        Task<Product?> GetProduct(int id);
+        Task<ProductResponseDto?> GetProduct(int id);
+        //Task<Product?> GetProduct(int id);
         // para soportar filtros, ordenamiento y paginación
         Task<(List<Product> Items, int TotalCount)> GetProductsAsync(
             int? page,

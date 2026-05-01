@@ -100,17 +100,17 @@ public class ProductController(IProductService productService) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductRequestDTo product)
+    public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductRequestDTo productDto)
     {
-        if (id != product.id)
+        if (id != productDto.id)
             return BadRequest(new { message = "El ID no coincide." });
 
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         try
         {
-            await productService.UpdateProductAsync(product, Request.Scheme, Request.Host.Value);
-            return Ok(new { message = "Producto actualizado correctamente", data = product });
+            await productService.UpdateProductAsync(productDto, Request.Scheme, Request.Host.Value);
+            return Ok(new { message = "Producto actualizado correctamente", data = productDto });
         }
         catch (Exception ex)
         {
