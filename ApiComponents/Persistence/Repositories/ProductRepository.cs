@@ -419,26 +419,31 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                     }
                 }
 
-                // 6. Atributos Extra     
+                // 6. Atributos Extra
                 db.ProductAttributeValues.RemoveRange(existingProduct.attributeValues);
                 existingProduct.attributeValues.Clear();
 
-                if (productDto.extraAttributes != null)
+                if (productDto.extraAttributes != null && productDto.extraAttributes.Any())
                 {
+                    // Traemos todas las definiciones de la categoría de una vez para no hacer mil consultas al server
+                    var definitions = await db.ProductAttributeDefinitions
+                        .Where(d => d.categoryId == existingProduct.categoryId)
+                        .ToListAsync();
+
                     foreach (var attr in productDto.extraAttributes)
                     {
                         int? finalDefId = null;
 
-                        // Caso A: El 'name' ya es el ID numérico
+                        // Intentamos primero si el name es el ID
                         if (int.TryParse(attr.name, out int defId))
                         {
                             finalDefId = defId;
                         }
-                        // Caso B: El 'name' es un texto (ej: "sistema operativo"), buscamos el ID
                         else
                         {
-                            var definition = await db.ProductAttributeDefinitions
-                                .FirstOrDefaultAsync(x => x.name == attr.name);
+                            // Buscamos por nombre ignorando mayúsculas/minúsculas y espacios
+                            var definition = definitions.FirstOrDefault(x =>
+                                x.name.Trim().Equals(attr.name.Trim(), StringComparison.OrdinalIgnoreCase));
 
                             if (definition != null)
                             {
@@ -446,13 +451,13 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                             }
                         }
 
-                        // Si logramos obtener un ID (por número o por búsqueda), guardamos el valor
                         if (finalDefId.HasValue)
                         {
                             existingProduct.attributeValues.Add(new ProductExtraAttributeValue
                             {
-                                attributeDefinitionId = finalDefId!.Value,
-                                value = attr.value
+                                productId = existingProduct.id!.Value, // Aseguramos el ID del producto
+                                attributeDefinitionId = finalDefId.Value,
+                                value = attr.value ?? string.Empty // Evitamos nulls en la DB
                             });
                         }
                     }
