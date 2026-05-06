@@ -6,7 +6,7 @@ using AutoMapper;
 namespace ApiComponents.Services
 {
     // Usamos el constructor primario para inyectar el repositorio y el mapper
-    public class ProductAttributeService(IProductAttributeRepository repo, IMapper mapper) : IProductAttributeService
+    public class ProductExtraAttributeService(IProductAttributeRepository repo, IMapper mapper) : IProductExtraAttributeService
     {
         public async Task<IEnumerable<ProductExtraAttributesDto>> GetExtraAttributesByCategoryId(int categoryId)
         {

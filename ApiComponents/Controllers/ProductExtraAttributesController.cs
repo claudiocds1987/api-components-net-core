@@ -7,7 +7,7 @@ namespace ApiComponents.Controllers;
 
 [ApiController]
 [Route("api/ProductExtraAttributes")]
-public class ProductExtraAttributesController(IProductAttributeService attributeService) : ControllerBase
+public class ProductExtraAttributesController(IProductExtraAttributeService attributeService) : ControllerBase
 {
     [HttpGet("category/{categoryId}")]
     public async Task<ActionResult<IEnumerable<ProductExtraAttributesDto>>> GetByCategory(int categoryId)

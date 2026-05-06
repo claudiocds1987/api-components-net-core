@@ -87,7 +87,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
-builder.Services.AddScoped<IProductAttributeService, ProductAttributeService>();
+builder.Services.AddScoped<IProductExtraAttributeService, ProductExtraAttributeService>();
 // Registro actualizado para AutoMapper
 builder.Services.AddAutoMapper(cfg =>
 {

@@ -2,7 +2,7 @@
 
 namespace ApiComponents.Services
 {
-    public interface IProductAttributeService
+    public interface IProductExtraAttributeService
     {
         Task<IEnumerable<ProductExtraAttributesDto>> GetExtraAttributesByCategoryId(int categoryId);
         Task SaveExtraAttributes(int categoryId, List<ProductExtraAttributesDto> attributes);
