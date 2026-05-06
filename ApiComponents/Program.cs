@@ -88,6 +88,12 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IProductAttributeService, ProductAttributeService>();
+// Registro actualizado para AutoMapper
+builder.Services.AddAutoMapper(cfg =>
+{
+    // Localiza el ensamblado de MappingProfile y registra todos los perfiles allí
+    cfg.AddMaps(typeof(ApiComponents.Mappings.MappingProfile).Assembly);
+});
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
 // Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.

@@ -5,13 +5,13 @@
     {
         public int id { get; set; }
         public string name { get; set; } = string.Empty;
-
-        // Para saber a qué categoría pertenece esta definición
         public int categoryId { get; set; }
+        public string dataType { get; set; } = string.Empty; // 'text', 'number', 'boolean'
 
-        // Para que Angular sepa qué input mostrar: "text", "number", "boolean"
-        public string dataType { get; set; } = "text";
 
-        public ICollection<ProductExtraAttributeValue> attributeValues { get; set; } = new List<ProductExtraAttributeValue>();
+        public string? validationsJson { get; set; } // JSON: {"required": true, "maxLength": 200}
+
+        // Relación inversa para EF
+        public virtual ICollection<ProductExtraAttributeValue> attributeValues { get; set; } = new List<ProductExtraAttributeValue>();
     }
 }

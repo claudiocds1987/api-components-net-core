@@ -1,9 +1,12 @@
-﻿using ApiComponents.DTOs;
+﻿using ApiComponents.Models;
 
 namespace ApiComponents.Persistence.Repositories
 {
     public interface IProductAttributeRepository
     {
-        Task<IEnumerable<ProductExtraAttributesDto>> GetByCategoryId(int categoryId);
+        Task<IEnumerable<ProductExtraAttributeDefinition>> GetExtraAttributesByCategoryId(int categoryId);
+        Task AddExtraAttributes(ProductExtraAttributeDefinition attribute);
+        void UpdateExtraAttributes(ProductExtraAttributeDefinition attribute);
+        Task SaveChangesAsync();
     }
 }
