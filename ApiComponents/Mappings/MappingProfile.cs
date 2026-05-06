@@ -15,8 +15,8 @@ namespace ApiComponents.Mappings
                 .ForMember(dest => dest.label, opt => opt.MapFrom(src => src.name))
                 .ForMember(dest => dest.validations, opt => opt.MapFrom(src =>
                     string.IsNullOrEmpty(src.validationsJson)
-                        ? new AttributeValidationsDto()
-                        : JsonSerializer.Deserialize<AttributeValidationsDto>(src.validationsJson, (JsonSerializerOptions?)null)));
+                        ? new ExtraAttributeValidationsDto()
+                        : JsonSerializer.Deserialize<ExtraAttributeValidationsDto>(src.validationsJson, (JsonSerializerOptions?)null)));
 
             // 2. Mapeo de DTO (Angular) -> ENTIDAD (DB)
             // Se usa cuando recibimos datos para guardar o actualizar.

@@ -28,21 +28,32 @@ public class ProductExtraAttributesController(IProductExtraAttributeService attr
         }
     }
 
-    [HttpPost("save-extra-attributes/{categoryId}")] // Endpoint para guardar y/o actualizar atributos extra de un producto
+    [HttpPost("save-extra-attributes/{categoryId}")] // Endpoint para guardar o actualizar atributos extra de una categoría
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> SaveExtraAttributes(int categoryId, [FromBody] List<ProductExtraAttributesDto> attributes)
     {
         if (attributes == null || categoryId <= 0)
-            return BadRequest("Datos de entrada inválidos.");
+        {
+            return BadRequest(new { message = "Datos de entrada inválidos." });
+        }
 
         try
         {
+            // Ejecuta la lógica de sincronización (Insert/Update)
             await attributeService.SaveExtraAttributes(categoryId, attributes);
-            return Ok(new { message = "Atributos guardados correctamente" });
+
+            // Retorna un 200 OK con el mensaje de confirmación
+            return Ok(new { message = "Atributos guardados exitosamente" });
         }
         catch (Exception ex)
         {
-            // Aquí podrías usar un logger para registrar el error real
-            return StatusCode(500, $"Error interno: {ex.Message}");
+            return StatusCode(500, new
+            {
+                message = "Ocurrió un error al intentar guardar los atributos.",
+                detail = ex.Message
+            });
         }
     }
 }

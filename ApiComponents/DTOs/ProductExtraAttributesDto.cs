@@ -10,6 +10,6 @@
         public int categoryId { get; set; }
 
         // Este objeto se mapeará desde/hacia el validationsJson del modelo
-        public AttributeValidationsDto validations { get; set; } = new(); // validations.required, validations.maxLength, etc. para Angular
+        public ExtraAttributeValidationsDto validations { get; set; } = new(); // validations.required, validations.maxLength, etc. para Angular
     }
 }
