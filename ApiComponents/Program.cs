@@ -92,7 +92,7 @@ builder.Services.AddScoped<IProductExtraAttributeService, ProductExtraAttributeS
 builder.Services.AddAutoMapper(cfg =>
 {
     // Localiza el ensamblado de MappingProfile y registra todos los perfiles allí
-    cfg.AddMaps(typeof(ApiComponents.Mappings.MappingProfile).Assembly);
+    cfg.AddMaps(typeof(ApiComponents.Mappings.MappingProductExtraAttributesProfile).Assembly);
 });
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
