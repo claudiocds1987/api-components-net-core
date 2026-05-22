@@ -1,4 +1,17 @@
 <Solution>
+  <Folder Name="/Agents/" />
+  <Folder Name="/Agents/skills/" />
+  <Folder Name="/Agents/skills/dotnet-developer/">
+    <File Path="SKILL.md" />
+  </Folder>
+  <Folder Name="/Agents/skills/dotnet-developer/references/">
+    <File Path="controllers.md" />
+    <File Path="dependency-injection.md" />
+    <File Path="ef-core-fluent-api.md" />
+    <File Path="repositories-pattern.md" />
+    <File Path="services-business-logic.md" />
+    <File Path="testing-fundamentals.md" />
+  </Folder>
   <Folder Name="/Elementos de la solución/">
     <File Path="APUNTES.txt" />
     <File Path="CREAR-PASO-A-PASO-UNA-ENTIDAD-TABLA.txt" />
