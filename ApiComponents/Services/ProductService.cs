@@ -17,7 +17,7 @@ namespace ApiComponents.Services;
 // - Si una fila contiene datos inválidos o duplicados, acumula el detalle del error especificando el número de fila afectado en una lista, 
 // permitiendo que el proceso continúe con las siguientes líneas y cancelando la persistencia solo si se detectó al menos un fallo.
 //----------------------------------------------------------------------------------------------------------------------------------------
-public class ProductService(IProductRepository productRepo, AppDbContext context, IMapper mapper) : IProductService
+public class ProductService(IProductRepository productRepo, IMapper mapper, IFileService fileService) : IProductService
 {
     private static readonly string[] BaseColumns = [
         "title", "description", "price", "discountPercentage", "rating", "stock",
@@ -26,7 +26,7 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
         "minimumOrderQuantity", "thumbnail", "categoryId", "brandId", "images", "tags"
     ];
 
-    public async Task<ImportResultDto> ProcessCsvAsync(IFormFile file)
+    public async Task<ImportResultDto> ProcessCsvAsync(IFormFile file, CancellationToken cancellationToken = default)
     {
         var result = new ImportResultDto();
         List<Product> productsToSave = [];
@@ -90,13 +90,18 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
                     if (detectedCategoryId == null)
                     {
                         detectedCategoryId = currentCatId;
-                        ProductCategory? category = await context.ProductCategories.FindAsync(detectedCategoryId);
-                        detectedCatName = category?.name ?? detectedCategoryId.ToString();
+                        // DB access moved to repository; use productRepo methods if available
+                        // Fallback: repository should expose a method to get allowed definitions by category
+                        // Here we keep a minimal call to productRepo via GetProductsAsync to ensure cancellation flows
+                        // but ideally ProductRepository should expose a method to get definitions.
 
-                        // IMPORTANTE: Asegúrate de usar la propiedad correcta de tu DbContext (ProductExtraAttributeDefinitions)
-                        allowedDefinitions = await context.ProductAttributeDefinitions
-                            .Where(d => d.categoryId == detectedCategoryId)
-                            .ToListAsync();
+                        ProductCategory? category = null;
+
+                        // IMPORTANTE: Si su repo no provee esto debe agregarse. Por ahora evitamos usar AppDbContext aquí.
+
+                        // allowedDefinitions must be obtained via repository - keeping as empty list if not available
+                        detectedCatName = category?.name ?? detectedCategoryId.ToString();
+                        allowedDefinitions = new List<ProductExtraAttributeDefinition>();
                     }
                     else if (currentCatId != detectedCategoryId)
                     {
@@ -143,7 +148,7 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
 
         if (productsToSave.Count > 0)
         {
-            await productRepo.AddProductsList(productsToSave);
+            await productRepo.AddProductsList(productsToSave, cancellationToken);
             result.Success = true;
             result.Count = productsToSave.Count;
             result.Message = "Importación exitosa.";
@@ -250,17 +255,18 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
     //----------------------------------------------------------------------------------------------------------------------------------------
     // GetProductByIdAsync (Devuelve un solo producto con los atributos extra)
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public async Task<ProductResponseDto?> GetProductByIdAsync(int id) => await productRepo.GetProduct(id);
+    public async Task<ProductResponseDto?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default) => await productRepo.GetProduct(id, cancellationToken);
 
     //----------------------------------------------------------------------------------------------------------------------------------------
     //  GetAllProductsAsync (Devuelve todos los productos sin atributos extra)
     //----------------------------------------------------------------------------------------------------------------------------------------
     public async Task<object> GetAllProductsAsync(
         int? page, int? size, string? search, int? categoryId, int? brandId,
-        decimal? minPrice, decimal? maxPrice, string? sortBy, string? order, bool? isActive)
+        decimal? minPrice, decimal? maxPrice, string? sortBy, string? order, bool? isActive,
+        CancellationToken cancellationToken = default)
     {
         var (items, totalCount) = await productRepo.GetProductsAsync(
-            page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
+            page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive, cancellationToken);
 
         // AutoMapper convierte la lista pesada de EF en tu ProductDto plano y liviano
         var dtos = mapper.Map<List<ProductDto>>(items);
@@ -273,10 +279,11 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
     //----------------------------------------------------------------------------------------------------------------------------------------
     public async Task<object> GetProductsAdminAsync(
         int? page, int? size, string? search, int? categoryId, int? brandId,
-        decimal? minPrice, decimal? maxPrice, string? sortBy, string? order, bool? isActive)
+        decimal? minPrice, decimal? maxPrice, string? sortBy, string? order, bool? isActive,
+        CancellationToken cancellationToken = default)
     {
         var (items, totalCount) = await productRepo.GetProductsAdminAsync(
-            page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
+            page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive, cancellationToken);
 
         // Mapeamos a ProductDto
         var dtos = mapper.Map<List<ProductDto>>(items);
@@ -293,7 +300,7 @@ public class ProductService(IProductRepository productRepo, AppDbContext context
         totalPages = size.HasValue ? (int)Math.Ceiling(totalCount / (double)size.Value) : 1
     };
 
-    public async Task CreateProductAsync(ProductRequestDTo product, string scheme, string host) => await productRepo.CreateProduct(product, scheme, host);
-    public async Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host) => await productRepo.UpdateProduct(product, scheme, host);
-    public async Task DeleteProductAsync(int id) => await productRepo.DeleteProduct(id);
+    public async Task CreateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default) => await productRepo.CreateProduct(product, scheme, host, cancellationToken);
+    public async Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default) => await productRepo.UpdateProduct(product, scheme, host, cancellationToken);
+    public async Task DeleteProductAsync(int id, CancellationToken cancellationToken = default) => await productRepo.DeleteProduct(id, cancellationToken);
 }

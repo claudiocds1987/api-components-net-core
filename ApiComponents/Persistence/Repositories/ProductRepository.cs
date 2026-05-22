@@ -6,19 +6,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ApiComponents.Persistence.Repositories;
 
-public class ProductRepository(AppDbContext db) : IProductRepository
+public class ProductRepository(AppDbContext db, IFileService fileService) : IProductRepository
 {
-    public async Task AddProductsList(List<Product> products)
+    private readonly IFileService _fileService = fileService;
+
+    public async Task AddProductsList(List<Product> products, CancellationToken cancellationToken = default)
     {
-        await db.Products.AddRangeAsync(products);
-        await db.SaveChangesAsync();
+        await db.Products.AddRangeAsync(products, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<bool> ExistProduct(string title)
-    => await db.Products.AnyAsync(p => EF.Functions.Like(p.title, title));
+    public async Task<bool> ExistProduct(string title, CancellationToken cancellationToken = default)
+    => await db.Products.AnyAsync(p => EF.Functions.Like(p.title, title), cancellationToken);
 
     // 1. OBTENER UN SOLO PRODUCTO (Simplificado para Angular)
-    public async Task<ProductResponseDto?> GetProduct(int id)
+    public async Task<ProductResponseDto?> GetProduct(int id, CancellationToken cancellationToken = default)
     {
         return await db.Products
             .Where(p => p.id == id)
@@ -68,7 +70,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                     productId = tag.productId
                 }).ToList()
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<(List<Product> Items, int TotalCount)> GetProductsAsync(
@@ -81,7 +83,8 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     decimal? maxPrice,
     string? sortBy,
     string? order,
-    bool? isActive = true)
+    bool? isActive = true,
+    CancellationToken cancellationToken = default)
     {
         var query = db.Products
             .Include(p => p.category)
@@ -109,7 +112,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
         if (maxPrice.HasValue)
             query = query.Where(p => p.price <= maxPrice);
 
-        int totalCount = await query.CountAsync();
+        int totalCount = await query.CountAsync(cancellationToken);
 
         // Ordenamiento
         query = sortBy?.ToLower() switch
@@ -122,7 +125,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
         var items = await query
             .Skip(((page ?? 1) - 1) * (size ?? 25))
             .Take(size ?? 25)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return (Items: items, TotalCount: totalCount);
     }
@@ -138,7 +141,8 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     decimal? maxPrice,
     string? sortBy,
     string? order,
-    bool? isActive = null) // "null" Para el Admin, el filtro de isActive es opcional (puede querer ver solo activos, solo inactivos o ambos)
+    bool? isActive = null, // "null" Para el Admin, el filtro de isActive es opcional (puede querer ver solo activos, solo inactivos o ambos)
+    CancellationToken cancellationToken = default)
     {
         var query = db.Products.AsQueryable();
 
@@ -167,7 +171,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
             query = query.Where(p => p.price <= maxPrice);
 
         // 5. Conteo Total (Importante hacerlo antes de la paginación)
-        int totalCount = await query.CountAsync();
+        int totalCount = await query.CountAsync(cancellationToken);
 
         // 6. Ordenamiento Dinámico corregido
         if (sortBy?.ToLower() == "price")
@@ -218,9 +222,9 @@ public class ProductRepository(AppDbContext db) : IProductRepository
         return (Items: items, TotalCount: totalCount);
     }
 
-    public async Task CreateProduct(ProductRequestDTo productDto, string scheme, string host)
+    public async Task CreateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default)
     {
-        var fileService = new FileService(); // Idealmente inyectado por DI
+        // FileService ahora se inyecta por DI
 
         // Creamos la estrategia de ejecución para permitir transacciones con políticas de reintento
         var strategy = db.Database.CreateExecutionStrategy();
@@ -256,12 +260,12 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                 };
 
                 // 2. PROCESAMIENTO: Guardamos la imagen física y actualizamos la propiedad con su URL final.
-                product.thumbnail = await fileService.ProcessImage(productDto.thumbnail, scheme, host);
+                product.thumbnail = await _fileService.ProcessImage(productDto.thumbnail, scheme, host, cancellationToken);
 
                 // 3. GENERACIÓN DE ID: Al ejecutar SaveChanges, SQL Server inserta el registro y genera el ID IDENTITY.
                 // Entity Framework recupera ese valor automáticamente y lo asigna a la propiedad 'product.id' en memoria.
-                await db.Products.AddAsync(product);
-                await db.SaveChangesAsync();
+                await db.Products.AddAsync(product, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
 
                 // 4. RELACIÓN (IMÁGENES): Como 'product.id' ya tiene el valor real devuelto por SQL,
                 // lo usamos para establecer la clave foránea (FK) en cada registro de la galería.
@@ -272,7 +276,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                         var newImg = new ProductImage
                         {
                             productId = (int)product.id!, // Aquí leemos el IDdel producto que SQL acaba de generar
-                            imageUrl = await fileService.ProcessImage(imgDto.imageUrl, scheme, host)
+                            imageUrl = await _file_service_ProcessImage_async_wrapper(imgDto.imageUrl, scheme, host, cancellationToken)
                         };
                         await db.ProductImages.AddAsync(newImg);
                     }
@@ -312,13 +316,13 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                 }
 
                 // Guardamos los hijos (Imágenes y Tags) y confirmamos la transacción de forma atómica.
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
                 // Si algo falla, el Rollback asegura que no queden productos creados sin sus fotos o tags.
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(cancellationToken);
 
                 string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 string technicalDetail = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
@@ -333,7 +337,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
     }
     public async Task UpdateProduct(ProductRequestDTo productDto, string scheme, string host)
     {
-        var fileService = new FileService();
+        // FileService inyectado por DI
         var strategy = db.Database.CreateExecutionStrategy();
 
         await strategy.ExecuteAsync(async () =>
@@ -346,7 +350,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                     .Include(p => p.images)
                     .Include(p => p.tags)
                     .Include(p => p.attributeValues)
-                    .FirstOrDefaultAsync(p => p.id == productDto.id);
+                    .FirstOrDefaultAsync(p => p.id == productDto.id, CancellationToken.None);
 
                 if (existingProduct == null)
                     throw new Exception($"Producto con ID {productDto.id} no encontrado.");
@@ -380,7 +384,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                 // 3. Imagen Principal
                 if (!string.IsNullOrEmpty(productDto.thumbnail) && productDto.thumbnail.StartsWith("data:image"))
                 {
-                    existingProduct.thumbnail = await fileService.ProcessImage(productDto.thumbnail, scheme, host);
+                    existingProduct.thumbnail = await _fileService.ProcessImage(productDto.thumbnail, scheme, host);
                 }
 
                 // 4. Galería de Imágenes (Limpieza y Re-creación segura)
@@ -396,7 +400,7 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                         existingProduct.images.Add(new ProductImage
                         {
                             imageUrl = imgDto.imageUrl.StartsWith("data:image")
-                                ? await fileService.ProcessImage(imgDto.imageUrl, scheme, host)
+                                ? await _file_service_ProcessImage_async_wrapper(imgDto.imageUrl, scheme, host, CancellationToken.None)
                                 : imgDto.imageUrl,
                             productId = existingProduct.id // Aseguramos la relación
                         });
@@ -466,25 +470,162 @@ public class ProductRepository(AppDbContext db) : IProductRepository
                 // Forzamos que EF detecte los cambios en la entidad principal
                 db.Entry(existingProduct).State = EntityState.Modified;
 
-                await db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await db.SaveChangesAsync(cancellationToken: CancellationToken.None);
+                await transaction.CommitAsync(cancellationToken: CancellationToken.None);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(CancellationToken.None);
                 throw new Exception($"Error al actualizar: {ex.Message}", ex);
             }
         });
     }
 
-    public async Task DeleteProduct(int id)
+    public async Task UpdateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default)
     {
-        var product = await db.Products.FindAsync(id);
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var existingProduct = await db.Products
+                    .Include(p => p.images)
+                    .Include(p => p.tags)
+                    .Include(p => p.attributeValues)
+                    .FirstOrDefaultAsync(p => p.id == productDto.id, cancellationToken);
+
+                if (existingProduct == null)
+                    throw new Exception($"Producto con ID {productDto.id} no encontrado.");
+
+                existingProduct.title = productDto.title;
+                existingProduct.description = productDto.description;
+                existingProduct.price = productDto.price;
+                existingProduct.discountPercentage = productDto.discountPercentage;
+                existingProduct.rating = productDto.rating;
+                existingProduct.stock = productDto.stock;
+                existingProduct.sku = productDto.sku;
+
+                existingProduct.weight = productDto.weight;
+                existingProduct.width = productDto.width;
+                existingProduct.height = productDto.height;
+                existingProduct.depth = productDto.depth;
+
+                existingProduct.warrantyInformation = productDto.warrantyInformation ?? string.Empty;
+                existingProduct.shippingInformation = productDto.shippingInformation ?? string.Empty;
+                existingProduct.availabilityStatus = productDto.availabilityStatus;
+                existingProduct.returnPolicy = productDto.returnPolicy ?? string.Empty;
+                existingProduct.minimumOrderQuantity = productDto.minimumOrderQuantity;
+
+                existingProduct.categoryId = productDto.categoryId;
+                existingProduct.brandId = productDto.brandId;
+                existingProduct.isActive = productDto.isActive;
+
+                if (!string.IsNullOrEmpty(productDto.thumbnail) && productDto.thumbnail.StartsWith("data:image"))
+                {
+                    existingProduct.thumbnail = await _fileService.ProcessImage(productDto.thumbnail, scheme, host, cancellationToken);
+                }
+
+                db.ProductImages.RemoveRange(existingProduct.images);
+                existingProduct.images.Clear();
+
+                if (productDto.images != null)
+                {
+                    foreach (var imgDto in productDto.images)
+                    {
+                        existingProduct.images.Add(new ProductImage
+                        {
+                            imageUrl = imgDto.imageUrl.StartsWith("data:image")
+                                ? await _fileService.ProcessImage(imgDto.imageUrl, scheme, host, cancellationToken)
+                                : imgDto.imageUrl,
+                            productId = existingProduct.id // Aseguramos la relación
+                        });
+                    }
+                }
+
+                db.ProductTags.RemoveRange(existingProduct.tags);
+                existingProduct.tags.Clear();
+
+                if (productDto.tags != null)
+                {
+                    foreach (var tagDto in productDto.tags)
+                    {
+                        existingProduct.tags.Add(new ProductTag
+                        {
+                            tagName = tagDto.tagName,
+                            productId = existingProduct.id!.Value
+                        });
+                    }
+                }
+
+                db.ProductAttributeValues.RemoveRange(existingProduct.attributeValues);
+                existingProduct.attributeValues.Clear();
+
+                if (productDto.extraAttributes != null && productDto.extraAttributes.Any())
+                {
+                    var definitions = await db.ProductAttributeDefinitions
+                        .Where(d => d.categoryId == existingProduct.categoryId)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var attr in productDto.extraAttributes)
+                    {
+                        int? finalDefId = null;
+
+                        if (int.TryParse(attr.name, out int defId))
+                        {
+                            finalDefId = defId;
+                        }
+                        else
+                        {
+                            var definition = definitions.FirstOrDefault(x =>
+                                x.name.Trim().Equals(attr.name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                            if (definition != null)
+                            {
+                                finalDefId = definition.id;
+                            }
+                        }
+
+                        if (finalDefId.HasValue)
+                        {
+                            existingProduct.attributeValues.Add(new ProductExtraAttributeValue
+                            {
+                                productId = existingProduct.id!.Value,
+                                attributeDefinitionId = finalDefId.Value,
+                                value = attr.value ?? string.Empty
+                            });
+                        }
+                    }
+                }
+
+                db.Entry(existingProduct).State = EntityState.Modified;
+
+                await db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw new Exception($"Error al actualizar: {ex.Message}", ex);
+            }
+        });
+    }
+
+    public async Task DeleteProduct(int id, CancellationToken cancellationToken = default)
+    {
+        var product = await db.Products.FindAsync(new object[] { id }, cancellationToken);
         if (product != null)
         {
-            product.isActive = false; // Solo cambiamos el estado (lo damos de baja lógica sin borrarlo de la base de datos)
+            product.isActive = false;
             db.Entry(product).State = EntityState.Modified;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    // Helper wrapper to call file service without changing many small call sites
+    private async Task<string> _file_service_ProcessImage_async_wrapper(string imageData, string scheme, string host, CancellationToken cancellationToken)
+    {
+        return await _fileService.ProcessImage(imageData, scheme, host, cancellationToken);
     }
 }

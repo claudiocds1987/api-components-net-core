@@ -18,14 +18,14 @@ namespace ApiComponents.Persistence.Repositories
             _context = context;
         }
 
-        public async Task<Employee> GetByIdAsync(int id)
+        public async Task<Employee> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            // FindAsync es el método más eficiente para buscar una entidad por su clave primaria.
-            // Primero verifica el caché de seguimiento de cambios de EF Core y luego va a la base de datos.
-            return await _context.Employees.FindAsync(id);
+            // FindAsync con token
+            var result = await _context.Employees.FindAsync(new object[] { id }, cancellationToken);
+            return result;
         }
 
-        public async Task<PaginatedList<Employee>> GetPagedEmployeesAsync(EmployeeQueryParams queryParams)
+        public async Task<PaginatedList<Employee>> GetPagedEmployeesAsync(EmployeeQueryParams queryParams, CancellationToken cancellationToken = default)
         {
             IQueryable<Employee> query = _context.Employees.AsQueryable();
 
@@ -84,7 +84,7 @@ namespace ApiComponents.Persistence.Repositories
 
 
             // 2. Obtener el TOTAL de registros antes de aplicar Skip/Take
-            var totalCount = await query.CountAsync();
+            var totalCount = await query.CountAsync(cancellationToken);
 
             // 3. Aplicar ORDENAMIENTO (ORDER BY)
             string sortColumn = queryParams.SortColumn?.ToLower() ?? "id";
@@ -109,7 +109,7 @@ namespace ApiComponents.Persistence.Repositories
             var items = await query
                 .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
                 .Take(queryParams.PageSize)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             // 5. Devolver el objeto PaginatedList
             return new PaginatedList<Employee>(
@@ -121,26 +121,26 @@ namespace ApiComponents.Persistence.Repositories
         }
 
         // Implementación de otros métodos CRUD
-        public async Task<IEnumerable<Employee>> GetAllAsync()
+        public async Task<IEnumerable<Employee>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            return await _context.Employees.ToListAsync();
+            return await _context.Employees.ToListAsync(cancellationToken);
         }
 
-        public async Task AddAsync(Employee employee)
+        public async Task AddAsync(Employee employee, CancellationToken cancellationToken = default)
         {
-            _context.Employees.Add(employee);
-            await _context.SaveChangesAsync();
+            await _context.Employees.AddAsync(employee, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task AddEmployeeListAsync(List<Employee> employees)
+        public async Task AddEmployeeListAsync(List<Employee> employees, CancellationToken cancellationToken = default)
         {
             try
             {
                 // 1. Agregamos el rango de 20 empleados al contexto
-                await _context.Employees.AddRangeAsync(employees);
+                await _context.Employees.AddRangeAsync(employees, cancellationToken);
 
                 // 2. Guardamos en la base de datos
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
 
                 // 3. LIMPIEZA DE MEMORIA (Crucial para el plan gratuito)
                 // Esto le dice a EF Core que deje de rastrear los registros que ya guardó.
@@ -154,20 +154,20 @@ namespace ApiComponents.Persistence.Repositories
             }
         }
 
-        public async Task UpdateAsync(Employee employee)
+        public async Task UpdateAsync(Employee employee, CancellationToken cancellationToken = default)
         {
             // Indica a EF Core que el estado de la entidad ha sido modificado
             // Esto le dice a EF Core que debe generar una sentencia UPDATE.
             _context.Entry(employee).State = EntityState.Modified;
 
             // Guarda los cambios en la base de datos
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
             // 1. Encuentra la entidad que se va a eliminar
-            var employee = await _context.Employees.FindAsync(id);
+            var employee = await _context.Employees.FindAsync(new object[] { id }, cancellationToken);
 
             if (employee != null)
             {
@@ -175,17 +175,17 @@ namespace ApiComponents.Persistence.Repositories
                 _context.Employees.Remove(employee);
 
                 // 3. Guarda los cambios (ejecuta la sentencia DELETE)
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
             }
             // NOTA: Si FindAsync devuelve null, simplemente la función termina. 
             // La validación de NotFound() ya la maneja el Service o Controller.
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
         {
             // Usa AnyAsync para verificar de manera eficiente si existe un registro con ese ID.
             // Esto se traduce en una consulta SELECT 1 o COUNT(*) en SQL, que es muy rápido.
-            return await _context.Employees.AnyAsync(e => e.id == id);
+            return await _context.Employees.AnyAsync(e => e.id == id, cancellationToken);
         }
 
     }

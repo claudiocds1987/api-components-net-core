@@ -88,6 +88,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IProductExtraAttributeService, ProductExtraAttributeService>();
+// Servicio para procesar imágenes/archivos (necesario para repositorios que lo inyectan)
+builder.Services.AddScoped<IFileService, FileService>();
 // Registro actualizado para AutoMapper
 builder.Services.AddAutoMapper(cfg =>
 {

@@ -4,8 +4,8 @@ using ApiComponents.DTOs;
 
 public interface IProductService
 {
-    Task<ImportResultDto> ProcessCsvAsync(IFormFile file);
-    Task<ProductResponseDto?> GetProductByIdAsync(int id);
+    Task<ImportResultDto> ProcessCsvAsync(IFormFile file, CancellationToken cancellationToken = default);
+    Task<ProductResponseDto?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default);
 
     // endpoint pesado para el E-commerce
     Task<object> GetAllProductsAsync(
@@ -18,7 +18,8 @@ public interface IProductService
          decimal? maxPrice = null,
          string? sortBy = "title",
          string? order = "asc",
-         bool? isActive = true);
+         bool? isActive = true,
+         CancellationToken cancellationToken = default);
 
     // endpoint liviano para la Grilla Admin
     Task<object> GetProductsAdminAsync(
@@ -31,10 +32,11 @@ public interface IProductService
          decimal? maxPrice = null,
          string? sortBy = "title",
          string? order = "asc",
-         bool? isActive = null); // "null" por que el admin suele querer ver todos por defecto activos e inactivos
+         bool? isActive = null, // "null" por que el admin suele querer ver todos por defecto activos e inactivos
+         CancellationToken cancellationToken = default);
 
-    Task CreateProductAsync(ProductRequestDTo product, string scheme, string host);
+    Task CreateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
 
-    Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host);
-    Task DeleteProductAsync(int id);
+    Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
+    Task DeleteProductAsync(int id, CancellationToken cancellationToken = default);
 }

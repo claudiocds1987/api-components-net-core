@@ -5,10 +5,8 @@ namespace ApiComponents.Persistence.Repositories
 {
     public interface IProductRepository
     {
-
-        Task AddProductsList(List<Product> products);
-        Task<ProductResponseDto?> GetProduct(int id);
-        //Task<Product?> GetProduct(int id);
+        Task AddProductsList(List<Product> products, CancellationToken cancellationToken = default);
+        Task<ProductResponseDto?> GetProduct(int id, CancellationToken cancellationToken = default);
         // para soportar filtros, ordenamiento y paginación
         Task<(List<Product> Items, int TotalCount)> GetProductsAsync(
             int? page,
@@ -20,7 +18,8 @@ namespace ApiComponents.Persistence.Repositories
             decimal? maxPrice = null,
             string? sortBy = "title",
             string? order = "asc",
-            bool? isActive = true);
+            bool? isActive = true,
+            CancellationToken cancellationToken = default);
 
         Task<(List<ProductAdminDto> Items, int TotalCount)> GetProductsAdminAsync(
             int? page,
@@ -32,11 +31,12 @@ namespace ApiComponents.Persistence.Repositories
             decimal? maxPrice = null,
             string? sortBy = "title",
             string? order = "asc",
-            bool? isActive = null); // El admin suele querer ver todos por defecto activos e inactivos
+            bool? isActive = null, // El admin suele querer ver todos por defecto activos e inactivos
+            CancellationToken cancellationToken = default);
 
-        Task CreateProduct(ProductRequestDTo product, string scheme, string host);
-        Task DeleteProduct(int id);
-        Task UpdateProduct(ProductRequestDTo product, string scheme, string host);
-        Task<bool> ExistProduct(string title); // Validamos por título ya que el ID es automático
+        Task CreateProduct(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
+        Task DeleteProduct(int id, CancellationToken cancellationToken = default);
+        Task UpdateProduct(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
+        Task<bool> ExistProduct(string title, CancellationToken cancellationToken = default); // Validamos por título ya que el ID es automático
     }
 }

@@ -17,7 +17,7 @@ namespace ApiComponents.Persistence.Repositories
             _apiKey = config["Gemini:ApiKey"] ?? throw new ArgumentNullException("ApiKey no configurada");
         }
 
-        public async Task<string> GenerateTextAsync(string prompt)
+        public async Task<string> GenerateTextAsync(string prompt, CancellationToken cancellationToken = default)
         {
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{ModelName}:generateContent?key={_apiKey}";
 
@@ -28,7 +28,7 @@ namespace ApiComponents.Persistence.Repositories
 
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(url, requestBody);
+                var response = await _httpClient.PostAsJsonAsync(url, requestBody, cancellationToken);
 
                 // Si la API responde con error (como el 429 de cuota agotada)
                 if (!response.IsSuccessStatusCode)
@@ -40,7 +40,7 @@ namespace ApiComponents.Persistence.Repositories
                     throw new HttpRequestException($"GEMINI_ERROR|{(int)response.StatusCode}|{errorDetails}");
                 }
 
-                var result = await response.Content.ReadFromJsonAsync<GeminiResponse>();
+                var result = await response.Content.ReadFromJsonAsync<GeminiResponse>(cancellationToken: cancellationToken);
                 return result?.Candidates?[0].Content?.Parts?[0].Text ?? "No se recibió respuesta del modelo.";
             }
             catch (HttpRequestException)

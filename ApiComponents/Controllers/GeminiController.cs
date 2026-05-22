@@ -17,12 +17,12 @@ namespace ApiComponents.Controllers
 
         // Este es el endpoint que usa el ia Chat en Angular
         [HttpPost("ask")]
-        public async Task<IActionResult> Ask([FromBody] GeminiSimpleRequestDto request)
+        public async Task<IActionResult> Ask([FromBody] GeminiSimpleRequestDto request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(request.Prompt))
                 return BadRequest("The question cannot be empty.");
 
-            var response = await _geminiService.QueryCatalogAsync(request.Prompt);
+            var response = await _geminiService.QueryCatalogAsync(request.Prompt, cancellationToken);
             return Ok(response);
         }
 
@@ -37,9 +37,9 @@ namespace ApiComponents.Controllers
 
         // endpoint específico para cuando el usuario ya está viendo un producto puntual
         [HttpPost("seller-expert")]
-        public async Task<IActionResult> SellerExpert([FromBody] GeminiProductRequestDto request)
+        public async Task<IActionResult> SellerExpert([FromBody] GeminiProductRequestDto request, CancellationToken cancellationToken)
         {
-            var response = await _geminiService.GetSellerAnswerAsync(request);
+            var response = await _geminiService.GetSellerAnswerAsync(request, cancellationToken);
             return Ok(new { response });
         }
     }

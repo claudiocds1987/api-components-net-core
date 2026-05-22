@@ -2,6 +2,6 @@
 {
     public interface IGeminiRepository
     {
-        Task<string> GenerateTextAsync(string prompt);
+        Task<string> GenerateTextAsync(string prompt, CancellationToken cancellationToken = default);
     }
 }

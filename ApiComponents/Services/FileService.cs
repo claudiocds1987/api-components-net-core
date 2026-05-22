@@ -1,11 +1,16 @@
 ﻿namespace ApiComponents.Services
 {
     // Helper simple para inyectar o usar en el Service/Repo
-    public class FileService
+    public interface IFileService
+    {
+        Task<string> ProcessImage(string imageData, string scheme, string host, CancellationToken cancellationToken = default);
+    }
+
+    public class FileService : IFileService
     {
         private readonly string _uploadFolder = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
 
-        public async Task<string> ProcessImage(string imageData, string scheme, string host)
+        public async Task<string> ProcessImage(string imageData, string scheme, string host, CancellationToken cancellationToken = default)
         {
             // 1. Si ya es una URL, no se procesa
             if (imageData.StartsWith("http")) return imageData;
@@ -34,7 +39,7 @@
                 var filePath = System.IO.Path.Combine(_uploadFolder, fileName);
 
                 // Guardar archivo físico
-                await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+                await System.IO.File.WriteAllBytesAsync(filePath, bytes, cancellationToken);
 
                 // Retornar URL para el frontend
                 return $"{scheme}://{host}/uploads/{fileName}";

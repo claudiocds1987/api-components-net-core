@@ -6,38 +6,43 @@ namespace ApiComponents.Services;
 
 public class EmployeeService(IEmployeeRepository employeeRepository) : IEmployeeService
 {
-    public async Task<PaginatedList<Employee>> GetPagedEmployeesAsync(EmployeeQueryParams queryParams)
-        => await employeeRepository.GetPagedEmployeesAsync(queryParams);
+    public async Task<PaginatedList<Employee>> GetPagedEmployeesAsync(EmployeeQueryParams queryParams, CancellationToken cancellationToken = default)
+        => await employeeRepository.GetPagedEmployeesAsync(queryParams, cancellationToken);
 
-    public async Task<IEnumerable<Employee>> GetAllEmployeesAsync()
-        => await employeeRepository.GetAllAsync();
+    public async Task<IEnumerable<Employee>> GetAllEmployeesAsync(CancellationToken cancellationToken = default)
+        => await employee_repository_GetAllAsync_wrapper(cancellationToken);
 
-    public async Task<Employee> GetEmployeeByIdAsync(int id)
+    private async Task<IEnumerable<Employee>> employee_repository_GetAllAsync_wrapper(CancellationToken cancellationToken)
     {
-        if (id <= 0) throw new ArgumentException("El ID del empleado debe ser positivo.");
-        return await employeeRepository.GetByIdAsync(id);
+        return await employeeRepository.GetAllAsync(cancellationToken);
     }
 
-    public async Task AddEmployeeAsync(Employee employee)
+    public async Task<Employee> GetEmployeeByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) throw new ArgumentException("El ID del empleado debe ser positivo.");
+        return await employeeRepository.GetByIdAsync(id, cancellationToken);
+    }
+
+    public async Task AddEmployeeAsync(Employee employee, CancellationToken cancellationToken = default)
     {
         if (employee.birthDate > DateTime.Now.AddYears(-18))
             throw new ApplicationException("El empleado debe ser mayor de 18 años.");
 
-        await employeeRepository.AddAsync(employee);
+        await employeeRepository.AddAsync(employee, cancellationToken);
     }
 
-    public async Task UpdateEmployeeAsync(int id, Employee employee)
+    public async Task UpdateEmployeeAsync(int id, Employee employee, CancellationToken cancellationToken = default)
     {
-        if (!await employeeRepository.ExistsAsync(id))
+        if (!await employeeRepository.ExistsAsync(id, cancellationToken))
             // CAMBIO AQUÍ: Especificamos el namespace de System para evitar conflicto con GraphQL
             throw new System.Collections.Generic.KeyNotFoundException($"Empleado con ID {id} no encontrado.");
 
-        await employeeRepository.UpdateAsync(employee);
+        await employeeRepository.UpdateAsync(employee, cancellationToken);
     }
 
-    public async Task DeleteEmployeeAsync(int id) => await employeeRepository.DeleteAsync(id);
+    public async Task DeleteEmployeeAsync(int id, CancellationToken cancellationToken = default) => await employeeRepository.DeleteAsync(id, cancellationToken);
 
-    public async Task AddEmployeeListAsync(List<Employee> employees)
+    public async Task AddEmployeeListAsync(List<Employee> employees, CancellationToken cancellationToken = default)
     {
         if (employees is not { Count: > 0 }) return;
 
@@ -48,9 +53,8 @@ public class EmployeeService(IEmployeeRepository employeeRepository) : IEmployee
 
         foreach (var lote in lotes)
         {
-            // IDE0305: Uso de spread operator [..] para simplificar
-            await employeeRepository.AddEmployeeListAsync([.. lote]);
-            await Task.Delay(100);
+            await employeeRepository.AddEmployeeListAsync([.. lote], cancellationToken);
+            await Task.Delay(100, cancellationToken);
         }
     }
 }
