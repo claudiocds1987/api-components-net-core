@@ -259,8 +259,20 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     isActive = productDto.isActive
                 };
 
-                // 2. PROCESAMIENTO: Guardamos la imagen física y actualizamos la propiedad con su URL final.
-                product.thumbnail = await _fileService.ProcessImage(productDto.thumbnail, scheme, host, cancellationToken);
+                // 2. PROCESAMIENTO: Evaluamos si laimagen es Base64 o una URL directa (ej: Cloudinary)
+                if (!string.IsNullOrEmpty(productDto.thumbnail))
+                {
+                    if (productDto.thumbnail.StartsWith("data:image"))
+                    {
+                        // Caso A: Es una imagen subida localmente en Base64, se procesa en el servidor
+                        product.thumbnail = await _fileService.ProcessImage(productDto.thumbnail, scheme, host, cancellationToken);
+                    }
+                    else
+                    {
+                        // Caso B: Es una URL directa externa (Cloudinary), se guarda tal cual viene
+                        product.thumbnail = productDto.thumbnail;
+                    }
+                }
 
                 // 3. GENERACIÓN DE ID: Al ejecutar SaveChanges, SQL Server inserta el registro y genera el ID IDENTITY.
                 // Entity Framework recupera ese valor automáticamente y lo asigna a la propiedad 'product.id' en memoria.
@@ -335,151 +347,6 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             }
         });
     }
-    public async Task UpdateProduct(ProductRequestDTo productDto, string scheme, string host)
-    {
-        // FileService inyectado por DI
-        var strategy = db.Database.CreateExecutionStrategy();
-
-        await strategy.ExecuteAsync(async () =>
-        {
-            using var transaction = await db.Database.BeginTransactionAsync();
-            try
-            {
-                // 1. Buscamos el producto con sus relaciones cargadas
-                var existingProduct = await db.Products
-                    .Include(p => p.images)
-                    .Include(p => p.tags)
-                    .Include(p => p.attributeValues)
-                    .FirstOrDefaultAsync(p => p.id == productDto.id, CancellationToken.None);
-
-                if (existingProduct == null)
-                    throw new Exception($"Producto con ID {productDto.id} no encontrado.");
-
-                // 2. Actualización de propiedades básicas
-                existingProduct.title = productDto.title;
-                existingProduct.description = productDto.description;
-                existingProduct.price = productDto.price;
-                existingProduct.discountPercentage = productDto.discountPercentage;
-                existingProduct.rating = productDto.rating;
-                existingProduct.stock = productDto.stock;
-                existingProduct.sku = productDto.sku;
-
-                // IMPORTANTE: Aseguramos que estos valores se asignen correctamente
-                existingProduct.weight = productDto.weight;
-                existingProduct.width = productDto.width;
-                existingProduct.height = productDto.height;
-                existingProduct.depth = productDto.depth;
-
-                // Logística y Garantía
-                existingProduct.warrantyInformation = productDto.warrantyInformation ?? string.Empty;
-                existingProduct.shippingInformation = productDto.shippingInformation ?? string.Empty;
-                existingProduct.availabilityStatus = productDto.availabilityStatus;
-                existingProduct.returnPolicy = productDto.returnPolicy ?? string.Empty;
-                existingProduct.minimumOrderQuantity = productDto.minimumOrderQuantity;
-
-                existingProduct.categoryId = productDto.categoryId;
-                existingProduct.brandId = productDto.brandId;
-                existingProduct.isActive = productDto.isActive;
-
-                // 3. Imagen Principal
-                if (!string.IsNullOrEmpty(productDto.thumbnail) && productDto.thumbnail.StartsWith("data:image"))
-                {
-                    existingProduct.thumbnail = await _fileService.ProcessImage(productDto.thumbnail, scheme, host);
-                }
-
-                // 4. Galería de Imágenes (Limpieza y Re-creación segura)
-                // Primero removemos del contexto
-                db.ProductImages.RemoveRange(existingProduct.images);
-                // Luego limpiamos la lista de la entidad para evitar conflictos de tracking
-                existingProduct.images.Clear();
-
-                if (productDto.images != null)
-                {
-                    foreach (var imgDto in productDto.images)
-                    {
-                        existingProduct.images.Add(new ProductImage
-                        {
-                            imageUrl = imgDto.imageUrl.StartsWith("data:image")
-                                ? await _file_service_ProcessImage_async_wrapper(imgDto.imageUrl, scheme, host, CancellationToken.None)
-                                : imgDto.imageUrl,
-                            productId = existingProduct.id // Aseguramos la relación
-                        });
-                    }
-                }
-
-                // 5. Tags (Limpieza y Re-creación segura)
-                db.ProductTags.RemoveRange(existingProduct.tags);
-                existingProduct.tags.Clear();
-
-                if (productDto.tags != null)
-                {
-                    foreach (var tagDto in productDto.tags)
-                    {
-                        existingProduct.tags.Add(new ProductTag
-                        {
-                            tagName = tagDto.tagName,
-                            productId = existingProduct.id!.Value
-                        });
-                    }
-                }
-
-                // 6. Atributos Extra
-                db.ProductAttributeValues.RemoveRange(existingProduct.attributeValues);
-                existingProduct.attributeValues.Clear();
-
-                if (productDto.extraAttributes != null && productDto.extraAttributes.Any())
-                {
-                    // Traemos todas las definiciones de la categoría de una vez para no hacer mil consultas al server
-                    var definitions = await db.ProductAttributeDefinitions
-                        .Where(d => d.categoryId == existingProduct.categoryId)
-                        .ToListAsync();
-
-                    foreach (var attr in productDto.extraAttributes)
-                    {
-                        int? finalDefId = null;
-
-                        // Intentamos primero si el name es el ID
-                        if (int.TryParse(attr.name, out int defId))
-                        {
-                            finalDefId = defId;
-                        }
-                        else
-                        {
-                            // Buscamos por nombre ignorando mayúsculas/minúsculas y espacios
-                            var definition = definitions.FirstOrDefault(x =>
-                                x.name.Trim().Equals(attr.name.Trim(), StringComparison.OrdinalIgnoreCase));
-
-                            if (definition != null)
-                            {
-                                finalDefId = definition.id;
-                            }
-                        }
-
-                        if (finalDefId.HasValue)
-                        {
-                            existingProduct.attributeValues.Add(new ProductExtraAttributeValue
-                            {
-                                productId = existingProduct.id!.Value, // Aseguramos el ID del producto
-                                attributeDefinitionId = finalDefId.Value,
-                                value = attr.value ?? string.Empty // Evitamos nulls en la DB
-                            });
-                        }
-                    }
-                }
-
-                // Forzamos que EF detecte los cambios en la entidad principal
-                db.Entry(existingProduct).State = EntityState.Modified;
-
-                await db.SaveChangesAsync(cancellationToken: CancellationToken.None);
-                await transaction.CommitAsync(cancellationToken: CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(CancellationToken.None);
-                throw new Exception($"Error al actualizar: {ex.Message}", ex);
-            }
-        });
-    }
 
     public async Task UpdateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default)
     {
@@ -524,7 +391,13 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
 
                 if (!string.IsNullOrEmpty(productDto.thumbnail) && productDto.thumbnail.StartsWith("data:image"))
                 {
+                    // Caso A: Es una imagen local subida en Base64, se procesa y se guarda localmente
                     existingProduct.thumbnail = await _fileService.ProcessImage(productDto.thumbnail, scheme, host, cancellationToken);
+                }
+                else
+                {
+                    // Caso B: Es una URL directa externa (ej: Cloudinary), se asigna de forma directa
+                    existingProduct.thumbnail = productDto.thumbnail;
                 }
 
                 db.ProductImages.RemoveRange(existingProduct.images);
