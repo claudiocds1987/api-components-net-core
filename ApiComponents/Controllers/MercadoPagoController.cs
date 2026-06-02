@@ -91,8 +91,8 @@ public class MercadoPagoController : ControllerBase
     public async Task<IActionResult> ConfirmPayment([FromBody] MercadoPagoConfirmationDto confirmation)
     {
         // EN PRODUCCION DESCOMENTAR LAS SIGUIENTES LINEAS
-        Validamos el estado real del pago consultando al servicio
-       var realStatus = await _mpService.GetPaymentStatusAsync(confirmation.PaymentId);
+        //Validamos el estado real del pago consultando al servicio
+        var realStatus = await _mpService.GetPaymentStatusAsync(confirmation.PaymentId);
 
         if (realStatus == "approved")
         {
