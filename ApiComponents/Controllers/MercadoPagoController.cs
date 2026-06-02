@@ -1,10 +1,7 @@
-﻿
-using ApiComponents.DTOs;
+﻿using ApiComponents.DTOs;
 using ApiComponents.Persistence.Repositories;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -19,6 +16,12 @@ public class MercadoPagoController : ControllerBase
         _orderRepository = orderRepository;
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // CreatePreference() Se invoca desde el FRONTEND cuando el usuario hace clic en "Comprar".
+    // El backend crea una preferencia en MercadoPago y devuelve el preferenceId.
+    // El usuario es redirigido al checkout de MercadoPago con ese ID.
+    // Esto ocurre inmediatamente al iniciar el flujo de pago.
+    // -----------------------------------------------------------------------------------------------------------------
     [HttpPost("create-preference")]
     public async Task<IActionResult> CreatePreference([FromBody] CartDto cart)
     {
@@ -29,20 +32,21 @@ public class MercadoPagoController : ControllerBase
         }
         catch (Exception ex)
         {
-            // Esto te permitirá ver el error real en Postman
-            return StatusCode(500, new
-            {
-                error = "Error en el servidor backend",
-                detalle = ex.Message
-            });
+            return StatusCode(500, new { error = "Error en el servidor backend", detalle = ex.Message });
         }
     }
 
-    // WEBHOOK PROFESIONAL: Recibe notificaciones asincrónicas de MP
+    // -----------------------------------------------------------------------------------------------------------------
+    // [HttpPost("webhook")] WEBHOOK PROFESIONAL: Recibe notificaciones asincrónicas de MP
+    // NO lo llama el frontend. MercadoPagoWebhook() Lo dispara AUTOMÁTICAMENTE MercadoPago
+    // después de que el usuario completa el pago en su plataforma.
+    // MercadoPago envía un POST a esta URL con información del pago.
+    // El backend consulta el estado real en MercadoPago y actualiza la orden.
+    // Esto ocurre asincrónicamente, cuando MercadoPago termina de procesar el pago.
+    // -----------------------------------------------------------------------------------------------------------------
     [HttpPost("webhook")]
     public async Task<IActionResult> MercadoPagoWebhook([FromQuery] string topic, [FromQuery] string id)
     {
-        // Mercado Pago envía notificaciones por 'topic=payment' o a veces solo el id
         if (topic == "payment" || string.IsNullOrEmpty(topic))
         {
             try
@@ -52,44 +56,59 @@ public class MercadoPagoController : ControllerBase
 
                 if (payment.Status == "approved")
                 {
-                    // CORRECCIÓN CLAVE: El PreferenceId está dentro del objeto Order
-                    var preferenceId = payment.Order?.Id.ToString();
-
-                    // El ExternalReference es el ID numérico de tu base de datos (como string)
+                    // ¡AQUÍ ESTÁ EL CAMBIO CLAVE!: 
+                    // Mercado Pago nos devuelve en 'ExternalReference' el ID exacto que le mandamos de nuestra DB (ej: "1")
                     if (int.TryParse(payment.ExternalReference, out int orderId))
                     {
-                        // Actualizamos la orden usando el PreferenceId
-                        // Asegúrate que tu repositorio busque por este string
-                        await _orderRepository.UpdateStatusAsync(preferenceId, "Approved");
+                        // Actualizamos usando el método por ID numérico
+                        await _orderRepository.UpdateStatusByIdAsync(orderId, "Approved");
+                        await _orderRepository.SaveChangesAsync();
 
-                        Console.WriteLine($"Orden {orderId} (Pref: {preferenceId}) aprobada con éxito.");
+                        Console.WriteLine($"[WEBHOOK] Orden {orderId} aprobada con éxito en la Base de Datos.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Logueamos el error pero devolvemos Ok() para que MP no reintente infinitamente
+                // Logueamos el error pero siempre devolvemos Ok() para que MP no reintente infinitamente
                 Console.WriteLine($"Error procesando Webhook: {ex.Message}");
             }
         }
 
-        // Siempre devolvemos 200 OK para confirmar recepción a Mercado Pago
+        // Confirmamos recepción a Mercado Pago
         return Ok();
     }
 
-    // CONFIRMACIÓN SEGURA DESDE EL FRONTEND
+    // -----------------------------------------------------------------------------------------------------------------
+    // confirm-payment (CONFIRMACIÓN SEGURA DESDE EL FRONTEND)
+    // Endpoint opcional para verificación manual.
+    // Se puede invocar desde el FRONTEND (por ejemplo, al volver del checkout)
+    // o desde un proceso interno para validar el estado del pago.
+    // El backend consulta el estado en MercadoPago y actualiza la orden si está aprobado.
+    // Esto ocurre solo si vos decidís llamarlo explícitamente como refuerzo de seguridad.
+    // -----------------------------------------------------------------------------------------------------------------
     [HttpPost("confirm-payment")]
     public async Task<IActionResult> ConfirmPayment([FromBody] MercadoPagoConfirmationDto confirmation)
     {
-        // Validamos el estado real del pago en los servidores de MP antes de actualizar nuestra DB
-        var realStatus = await _mpService.GetPaymentStatusAsync(confirmation.PaymentId);
+        // EN PRODUCCION DESCOMENTAR LAS SIGUIENTES LINEAS
+        Validamos el estado real del pago consultando al servicio
+       var realStatus = await _mpService.GetPaymentStatusAsync(confirmation.PaymentId);
 
         if (realStatus == "approved")
         {
-            await _orderRepository.UpdateStatusAsync(confirmation.PreferenceId, "Approved");
-            return Ok(new { message = "Pago verificado y aprobado" });
+            // El Frontend nos suele proveer el PreferenceId, así que usamos el buscador por string
+            await _orderRepository.UpdateStatusByPreferenceIdAsync(confirmation.PreferenceId, "Approved");
+            await _orderRepository.SaveChangesAsync();
+
+            return Ok(new { message = "Pago verificado y aprobado con éxito." });
         }
 
         return BadRequest("El pago no pudo ser verificado");
+        //--------------------------------PRUEBA LOCAL-------------------------------------------------------------
+        // FORZAMOS LA CONFIRMACIÓN DIRECTA:
+        //await _orderRepository.UpdateStatusByPreferenceIdAsync(confirmation.PreferenceId, "Approved");
+        //await _orderRepository.SaveChangesAsync();
+
+        //return Ok(new { message = "Simulación de pago aprobada con éxito localmente." });
     }
 }

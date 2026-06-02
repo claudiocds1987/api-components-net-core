@@ -1,18 +1,21 @@
-﻿using System.Collections.Generic;
-
+﻿
 namespace ApiComponents.DTOs
 {
-    // Este es el objeto principal que recibirá el Controller
     public class CartDto
     {
-        public List<CartItemDto> Items { get; set; } = new List<CartItemDto>();
+        public int? userId { get; set; } // NULL si es usuario invitado
+        public string customerEmail { get; set; } = null!;
+        public string customerName { get; set; } = null!;
+        public string? customerPhone { get; set; }
+        public string shippingAddress { get; set; } = null!;
+        public string shippingCity { get; set; } = null!;
+        public string shippingZipCode { get; set; } = null!;
+        public List<CartItemDto> items { get; set; } = new();
     }
 
-    // Esta clase representa a cada producto individual dentro del carrito
     public class CartItemDto
     {
-        public string Name { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public decimal Price { get; set; }
+        public int productId { get; set; }
+        public int quantity { get; set; }
     }
 }

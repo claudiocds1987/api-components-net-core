@@ -1,7 +1,6 @@
-﻿using ApiComponents.Models;
+﻿using ApiComponents.Domain;
 using ApiComponents.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace ApiComponents.Persistence.Repositories
 {
@@ -14,25 +13,40 @@ namespace ApiComponents.Persistence.Repositories
             _context = context;
         }
 
-        public async Task AddAsync(Order order)
+        public async Task CreateAsync(Order order, CancellationToken cancellationToken = default)
         {
-            await _context.Set<Order>().AddAsync(order);
-            await _context.SaveChangesAsync();
+            await _context.Orders.AddAsync(order, cancellationToken);
         }
 
-        public async Task<Order?> GetByPreferenceIdAsync(string preferenceId)
+        public async Task UpdateAsync(Order order, CancellationToken cancellationToken = default)
         {
-            return await _context.Set<Order>().FirstOrDefaultAsync(o => o.PreferenceId == preferenceId);
+            _context.Orders.Update(order);
+            await Task.CompletedTask;
         }
 
-        public async Task UpdateStatusAsync(string preferenceId, string status)
+        // Busca por el ID numérico (Ideal para el Webhook via ExternalReference)
+        public async Task UpdateStatusByIdAsync(int id, string status, CancellationToken cancellationToken = default)
         {
-            var order = await GetByPreferenceIdAsync(preferenceId);
-            if (order != null && order.Status != status) // Solo actualiza si el estado cambió
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.id == id, cancellationToken);
+            if (order != null)
             {
-                order.Status = status;
-                await _context.SaveChangesAsync();
+                order.status = status;
             }
+        }
+
+        // Busca por el string largo de Mercado Pago (Ideal para la confirmación del Frontend)
+        public async Task UpdateStatusByPreferenceIdAsync(string preferenceId, string status, CancellationToken cancellationToken = default)
+        {
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.preferenceId == preferenceId, cancellationToken);
+            if (order != null)
+            {
+                order.status = status;
+            }
+        }
+
+        public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

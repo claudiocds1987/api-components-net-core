@@ -1,4 +1,5 @@
-﻿using ApiComponents.Models;
+﻿// ApiComponents/Persistence/Configurations/OrderConfiguration.cs
+using ApiComponents.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,25 +9,24 @@ namespace ApiComponents.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<Order> builder)
         {
-            // Nombre de la tabla
             builder.ToTable("Orders");
+            builder.HasKey(o => o.id);
 
-            // Clave primaria
-            builder.HasKey(o => o.Id);
+            builder.Property(o => o.preferenceId).HasMaxLength(200).IsRequired(false);
+            builder.Property(o => o.totalAmount).HasColumnType("decimal(18,2)").IsRequired();
+            builder.Property(o => o.status).HasMaxLength(50).IsRequired();
+            builder.Property(o => o.customerEmail).HasMaxLength(256).IsRequired();
+            builder.Property(o => o.customerName).HasMaxLength(150).IsRequired();
+            builder.Property(o => o.customerPhone).HasMaxLength(50).IsRequired(false);
+            builder.Property(o => o.shippingAddress).HasMaxLength(500).IsRequired();
+            builder.Property(o => o.shippingCity).HasMaxLength(150).IsRequired();
+            builder.Property(o => o.shippingZipCode).HasMaxLength(20).IsRequired();
 
-            // SOLUCIÓN AL WARNING: Especificar precisión para el decimal
-            // 18 dígitos en total, 2 de ellos decimales (moneda estándar)
-            builder.Property(o => o.TotalAmount)
-                   .HasColumnType("decimal(18,2)")
-                   .IsRequired();
-
-            // Otras configuraciones útiles
-            builder.Property(o => o.PreferenceId)
-                   .HasMaxLength(200)
-                   .IsRequired();
-
-            builder.Property(o => o.Status)
-                   .HasMaxLength(50);
+            // Configurar relación 1:N con OrderDetails
+            builder.HasMany(o => o.orderDetails)
+                   .WithOne(d => d.order)
+                   .HasForeignKey(d => d.orderId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -1,198 +1,185 @@
-﻿
+﻿using ApiComponents.Domain;
 using ApiComponents.DTOs;
-using ApiComponents.Models;
+using ApiComponents.Persistence.Context;
 using ApiComponents.Persistence.Repositories;
-using ApiComponents.Services;
 using MercadoPago.Client.Payment;
 using MercadoPago.Client.Preference;
-using System.Collections.Generic;
 using MercadoPago.Config;
-using MercadoPago.Error;
-using MercadoPago.Resource.Preference;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
-public class MercadoPagoService : IMercadoPagoService
+namespace ApiComponents.Services
 {
-    private readonly IConfiguration _configuration;
-    private readonly IOrderRepository _orderRepository;
-    private readonly string _baseUrl; // Variable para almacenar la URL base
-
-    public MercadoPagoService(IConfiguration configuration, IOrderRepository orderRepository)
+    public class MercadoPagoService : IMercadoPagoService
     {
-        _configuration = configuration;
-        _orderRepository = orderRepository;
+        private readonly IConfiguration _configuration;
+        private readonly IOrderRepository _orderRepository;
+        private readonly AppDbContext _context; // Inyectado para validar y congelar precios reales del catálogo
+        private readonly string _baseUrl;
 
-        // 1. Intenta leer de Variable de Entorno (MonsterASP)
-        var token = Environment.GetEnvironmentVariable("MercadoPago__AccessToken");
-        var baseUrl = Environment.GetEnvironmentVariable("MercadoPago__BaseUrl");
-
-        // 2. Si es NULL (estás en local), lee del appsettings.json
-        if (string.IsNullOrEmpty(token))
+        public MercadoPagoService(IConfiguration configuration, IOrderRepository orderRepository, AppDbContext context)
         {
-            token = _configuration["MercadoPago:AccessToken"];
-        }
+            _configuration = configuration;
+            _orderRepository = orderRepository;
+            _context = context;
 
-        if (string.IsNullOrEmpty(baseUrl))
-        {
-            baseUrl = _configuration["MercadoPago:BaseUrl"];
-        }
+            // 1. Intenta leer de Variable de Entorno (MonsterASP)
+            var token = Environment.GetEnvironmentVariable("MercadoPago__AccessToken");
+            var baseUrl = Environment.GetEnvironmentVariable("MercadoPago__BaseUrl");
 
-        // 3. Validación final
-        if (string.IsNullOrEmpty(token))
-        {
-            throw new Exception("AccessToken no encontrado en ningún proveedor de configuración.");
-        }
-
-        MercadoPagoConfig.AccessToken = token;
-        _baseUrl = baseUrl ?? "https://apicomponents.runasp.net";
-    }
-
-    public async Task<string> CreatePreferenceAsync(CartDto cart)
-    {
-        var client = new PreferenceClient();
-        decimal total = cart.Items.Sum(i => i.Price * i.Quantity);
-
-        // 1. Primero creamos el objeto Order SIN ID (la DB lo generará)
-        var order = new Order
-        {
-            TotalAmount = total,
-            Status = "Pending"
-        };
-
-        // 2. Guardamos en la DB para obtener el Id numérico (ExternalReference)
-        await _orderRepository.AddAsync(order);
-
-        var request = new PreferenceRequest
-        {
-            Items = cart.Items.Select(item => new PreferenceItemRequest
+            // 2. Si es NULL (estás en local), lee del appsettings.json
+            if (string.IsNullOrEmpty(token))
             {
-                Title = item.Name,
-                Quantity = (int)item.Quantity,
-                UnitPrice = (decimal)item.Price,
-                CurrencyId = "ARS"
-            }).ToList(),
-
-            BackUrls = new PreferenceBackUrlsRequest
-            {
-                // Mantenemos tu estructura de Hash (#) para Angular en GitHub Pages
-                Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
-                Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
-                Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result"
-            },
-
-            // Redirección automática al finalizar el pago exitoso
-            AutoReturn = "approved",
-
-            // MODO BINARIO: Evita el estado 'Pending' si el pago no es instantáneo. 
-            // El pago se aprueba o se rechaza, sin estados intermedios que traben el modal.
-            BinaryMode = true,
-
-            // Vinculamos el ID de tu base de datos con la transacción de MP
-            ExternalReference = order.Id.ToString(),
-
-            // URL para que Mercado Pago avise a tu backend (Server-to-Server)
-            NotificationUrl = $"{_baseUrl}/api/MercadoPago/webhook",
-
-            // Opcional: Evita que el usuario pueda pagar con métodos que tarden días en acreditarse (ej. Rapipago)
-            // si quieres que el flujo sea 100% digital e inmediato.
-            PaymentMethods = new PreferencePaymentMethodsRequest
-            {
-                ExcludedPaymentTypes = new List<PreferencePaymentTypeRequest>
-            {
-                new PreferencePaymentTypeRequest { Id = "ticket" } // Excluye efectivo si lo deseas
+                token = _configuration["MercadoPago:AccessToken"];
             }
+
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                baseUrl = _configuration["MercadoPago:BaseUrl"];
             }
-        };
 
-        try
-        {
-            var preference = await client.CreateAsync(request);
+            // 3. Validación final
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new Exception("AccessToken no encontrado en ningún proveedor de configuración.");
+            }
 
-            // Actualizamos la orden con el ID de la preferencia que nos dio MP
-            order.PreferenceId = preference.Id;
-            await _orderRepository.UpdateStatusAsync(order.Id.ToString(), "Pending");
-
-            return preference.Id;
+            MercadoPagoConfig.AccessToken = token;
+            _baseUrl = baseUrl ?? "https://apicomponents.runasp.net";
         }
-        catch (Exception ex)
+
+        public async Task<string> CreatePreferenceAsync(CartDto cart, CancellationToken cancellationToken = default)
         {
-            // Log detallado para MonsterASP
-            Console.WriteLine($"ERROR MERCADO PAGO: {ex.Message}");
-            if (ex.InnerException != null)
-                Console.WriteLine($"DETALLE TÉCNICO: {ex.InnerException.Message}");
+            // 1. Pasamos el cancellationToken a la estrategia de ejecución
+            var strategy = _context.Database.CreateExecutionStrategy();
+            string finalPreferenceId = string.Empty;
 
-            throw new Exception($"Error al generar la preferencia de pago: {ex.Message}", ex);
+            await strategy.ExecuteAsync(async () =>
+            {
+                // 2. Pasamos el cancellationToken al iniciar la transacción
+                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // 1. Instanciamos el objeto Order con las variables en camelCase y los datos del comprador/envío
+                    var order = new Order
+                    {
+                        userId = cart.userId, // Puede ser null si compra como invitado
+                        customerEmail = cart.customerEmail,
+                        customerName = cart.customerName,
+                        customerPhone = cart.customerPhone,
+                        shippingAddress = cart.shippingAddress,
+                        shippingCity = cart.shippingCity,
+                        shippingZipCode = cart.shippingZipCode,
+                        status = "Pending",
+                        createdAt = DateTime.UtcNow
+                    };
+
+                    decimal totalCalculado = 0;
+                    var preferenceItems = new List<PreferenceItemRequest>();
+
+                    // 2. Validamos cada ítem contra la Base de Datos para congelar el precio real actual
+                    foreach (var item in cart.items)
+                    {
+                        // Buscamos el producto en el catálogo pasándole el token
+                        var product = await _context.Products.FindAsync(new object[] { item.productId }, cancellationToken);
+                        if (product == null)
+                        {
+                            throw new Exception($"Producto con ID {item.productId} no encontrado en el catálogo.");
+                        }
+
+                        // Creamos la línea de detalle con el precio histórico/congelado (camelCase)
+                        var detail = new OrderDetail
+                        {
+                            productId = item.productId,
+                            quantity = item.quantity,
+                            price = product.price // Usamos el 'price' real de tu base de datos
+                        };
+
+                        order.orderDetails.Add(detail);
+
+                        // Calculamos el subtotal acumulado basándonos en la DB por seguridad
+                        totalCalculado += (product.price * item.quantity);
+
+                        // Mapeamos el objeto para el request que va a viajar a Mercado Pago
+                        preferenceItems.Add(new PreferenceItemRequest
+                        {
+                            Title = product.title, // Tomamos el nombre real de la DB
+                            Quantity = item.quantity,
+                            UnitPrice = product.price, // Precio real de la DB
+                            CurrencyId = "ARS"
+                        });
+                    }
+
+                    // Asignamos el monto final total calculado a la orden (camelCase)
+                    order.totalAmount = totalCalculado;
+
+                    // 3. Guardamos la orden y sus detalles en la DB pasándole el token a SaveChangesAsync
+                    await _orderRepository.CreateAsync(order, cancellationToken);
+                    await _orderRepository.SaveChangesAsync(cancellationToken);
+
+                    // 4. Configuramos el Request para Mercado Pago usando el ID recién generado como ExternalReference
+                    var client = new PreferenceClient();
+                    var request = new PreferenceRequest
+                    {
+                        Items = preferenceItems,
+
+                        BackUrls = new PreferenceBackUrlsRequest
+                        {
+                            Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
+                            Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
+                            Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result"
+                        },
+
+                        AutoReturn = "approved",
+                        BinaryMode = true,
+
+                        // Vinculamos el ID autoincremental de tu base de datos con la transacción de MP
+                        ExternalReference = order.id.ToString(),
+                        NotificationUrl = $"{_baseUrl}/api/MercadoPago/webhook",
+
+                        PaymentMethods = new PreferencePaymentMethodsRequest
+                        {
+                            ExcludedPaymentTypes = new List<PreferencePaymentTypeRequest>
+                    {
+                        new PreferencePaymentTypeRequest { Id = "ticket" }
+                    }
+                        }
+                    };
+
+                    // 5. Enviamos la petición a Mercado Pago pasándole el token de cancelación
+                    var preference = await client.CreateAsync(request, null, cancellationToken);
+                    finalPreferenceId = preference.Id;
+
+                    // 6. Actualizamos la orden en base de datos con el PreferenceId devuelto por MP (camelCase)
+                    order.preferenceId = finalPreferenceId;
+
+                    // Actualizamos el estado invocando a tu repositorio con el token
+                    await _orderRepository.UpdateStatusByIdAsync(order.id, "Pending", cancellationToken);
+                    await _orderRepository.SaveChangesAsync(cancellationToken);
+
+                    // Confirmamos la transacción de forma atómica en SQL Server pasándole el token
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    // Si algo sale mal, revertimos todo para evitar órdenes fantasmas o inconsistencias
+                    await transaction.RollbackAsync(cancellationToken);
+
+                    Console.WriteLine($"ERROR MERCADO PAGO: {ex.Message}");
+                    if (ex.InnerException != null)
+                        Console.WriteLine($"DETALLE TÉCNICO: {ex.InnerException.Message}");
+
+                    throw new Exception($"Error al generar la preferencia de pago: {ex.Message}", ex);
+                }
+            });
+
+            return finalPreferenceId;
         }
-    }
 
-    //public async Task<string> CreatePreferenceAsync(CartDto cart) // ORIGINAL
-    //{
-    //    var client = new PreferenceClient();
-    //    decimal total = cart.Items.Sum(i => i.Price * i.Quantity);
-
-    //    // 1. Primero creamos el objeto Order SIN ID (la DB lo generará)
-    //    var order = new Order
-    //    {
-    //        TotalAmount = total,
-    //        Status = "Pending"
-    //        // No asignamos Id ni PreferenceId todavía
-    //    };
-
-    //    // 2. Guardamos en la DB para que se genere el Id numérico
-    //    await _orderRepository.AddAsync(order);
-    //    // Ahora 'order.Id' ya tiene el número (ej: 1, 2, 3...) asignado por SQL Express
-    //    var request = new PreferenceRequest
-    //    {
-    //        Items = cart.Items.Select(item => new PreferenceItemRequest
-    //        {
-    //            Title = item.Name,
-    //            Quantity = (int)item.Quantity,
-    //            UnitPrice = (decimal)item.Price,
-    //            CurrencyId = "ARS"
-    //        }).ToList(),
-
-    //        BackUrls = new PreferenceBackUrlsRequest
-    //        {
-    //            Success = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
-    //            Failure = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result",
-    //            Pending = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result"
-    //        },
-
-
-    //        AutoReturn = "approved",
-    //        ExternalReference = order.Id.ToString(),
-    //        NotificationUrl = $"{_baseUrl}/api/MercadoPago/webhook",
-    //    };
-
-    //    try
-    //    {
-    //        var preference = await client.CreateAsync(request);
-    //        order.PreferenceId = preference.Id;
-    //        await _orderRepository.UpdateStatusAsync(order.PreferenceId, "Pending");
-    //        return preference.Id;
-    //    }
-    //    catch (Exception ex) // Cambiado de MercadoPagoApiException a Exception
-    //    {
-    //        // Esto escribirá el error real en los logs de MonsterASP en lugar de cerrar el proceso
-    //        Console.WriteLine($"ERROR COMPLETO: {ex.Message}");
-    //        if (ex.InnerException != null)
-    //            Console.WriteLine($"INNER ERROR: {ex.InnerException.Message}");
-
-    //        throw new Exception($"Error al conectar con Mercado Pago: {ex.Message}", ex);
-    //    }
-    //}
-
-    public async Task<string> GetPaymentStatusAsync(string paymentId)
-    {
-        // MP a veces manda IDs que pueden ser muy largos, usamos long.Parse
-        var client = new PaymentClient();
-        var payment = await client.GetAsync(long.Parse(paymentId));
-
-        // Aquí podrías retornar más datos si quisieras (ej: payment.ExternalReference)
-        return payment.Status;
+        public async Task<string> GetPaymentStatusAsync(string paymentId)
+        {
+            var client = new PaymentClient();
+            var payment = await client.GetAsync(long.Parse(paymentId));
+            return payment.Status;
+        }
     }
 }
-

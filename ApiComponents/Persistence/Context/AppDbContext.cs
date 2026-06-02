@@ -1,4 +1,5 @@
-﻿using ApiComponents.Models;
+﻿using ApiComponents.Domain;
+using ApiComponents.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiComponents.Persistence.Context
@@ -21,6 +22,8 @@ namespace ApiComponents.Persistence.Context
         public DbSet<Country> Country { get; set; }
         public DbSet<Order> Orders { get; set; } // para mercado pago 
         public DbSet<User> Users { get; set; }
+
+        public DbSet<OrderDetail> OrderDetails { get; set; } // para mercado pago 
 
         // TABLAS DE PRODUCTOS ---
         public DbSet<Product> Products { get; set; }
