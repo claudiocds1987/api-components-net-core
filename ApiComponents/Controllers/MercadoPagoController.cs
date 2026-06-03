@@ -88,27 +88,42 @@ public class MercadoPagoController : ControllerBase
     // Esto ocurre solo si vos decidís llamarlo explícitamente como refuerzo de seguridad.
     // -----------------------------------------------------------------------------------------------------------------
     [HttpPost("confirm-payment")]
-    public async Task<IActionResult> ConfirmPayment([FromBody] MercadoPagoConfirmationDto confirmation)
+    public async Task<IActionResult> ConfirmPayment(
+    [FromBody] MercadoPagoConfirmationDto confirmation,
+    [FromServices] IWebHostEnvironment env) // IWebHostEnvironment es nativa de net core, es para detectar si estamos en Producción o Desarrollo
     {
-        // EN PRODUCCION DESCOMENTAR LAS SIGUIENTES LINEAS
-        //Validamos el estado real del pago consultando al servicio
-        var realStatus = await _mpService.GetPaymentStatusAsync(confirmation.PaymentId);
-
-        if (realStatus == "approved")
+        // 1. SI ESTAMOS EN PRODUCCIÓN (MonsterASP), ACTIVAMOS LA SEGURIDAD MÁXIMA
+        if (env.IsProduction())
         {
-            // El Frontend nos suele proveer el PreferenceId, así que usamos el buscador por string
-            await _orderRepository.UpdateStatusByPreferenceIdAsync(confirmation.PreferenceId, "Approved");
-            await _orderRepository.SaveChangesAsync();
+            try
+            {
+                // Validamos el estado REAL del pago consultando directamente a la API de Mercado Pago
+                var realStatus = await _mpService.GetPaymentStatusAsync(confirmation.PaymentId);
 
-            return Ok(new { message = "Pago verificado y aprobado con éxito." });
+                if (realStatus == "approved")
+                {
+                    await _orderRepository.UpdateStatusByPreferenceIdAsync(confirmation.PreferenceId, "Approved");
+                    await _orderRepository.SaveChangesAsync();
+
+                    return Ok(new { message = "Pago verificado y aprobado con éxito en producción." });
+                }
+
+                return BadRequest("El pago no pudo ser verificado de forma segura.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al verificar el pago con Mercado Pago: {ex.Message}");
+            }
         }
 
-        return BadRequest("El pago no pudo ser verificado");
-        //--------------------------------PRUEBA LOCAL-------------------------------------------------------------
-        // FORZAMOS LA CONFIRMACIÓN DIRECTA:
-        //await _orderRepository.UpdateStatusByPreferenceIdAsync(confirmation.PreferenceId, "Approved");
-        //await _orderRepository.SaveChangesAsync();
+        // 2. SI ESTAMOS EN DESARROLLO (en localhost), FORZAMOS LA CONFIRMACIÓN RÁPIDA
+        // Esto evita que tus pruebas locales se traben si Mercado Pago Sandbox tarda en procesar
+        await _orderRepository.UpdateStatusByPreferenceIdAsync(confirmation.PreferenceId, "Approved");
+        await _orderRepository.SaveChangesAsync();
 
-        //return Ok(new { message = "Simulación de pago aprobada con éxito localmente." });
+        return Ok(new { message = "Simulación de pago aprobada con éxito localmente (Entorno de Desarrollo)." });
     }
+
+
+
 }
