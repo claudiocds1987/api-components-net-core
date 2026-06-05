@@ -13,7 +13,7 @@ namespace ApiComponents.Services
     {
         private readonly IConfiguration _configuration;
         private readonly IOrderRepository _orderRepository;
-        private readonly AppDbContext _context; // Inyectado para validar y congelar precios reales del catálogo
+        private readonly AppDbContext _context;
         private readonly string _baseUrl;
         private readonly IWebHostEnvironment _env;
 
@@ -76,7 +76,7 @@ namespace ApiComponents.Services
                         createdAt = DateTime.UtcNow
                     };
 
-                    decimal totalCalculado = 0;
+                    decimal totalAmount = 0;
                     var preferenceItems = new List<PreferenceItemRequest>();
 
                     // 2. Validamos cada ítem contra la Base de Datos para congelar el precio real actual
@@ -89,38 +89,47 @@ namespace ApiComponents.Services
                             throw new Exception($"Producto con ID {item.productId} no encontrado en el catálogo.");
                         }
 
-                        // Creamos la línea de detalle con el precio histórico/congelado (camelCase)
+                        //  CÁLCULO DEL PRECIO REAL CON DESCUENTO
+                        // Si el producto tiene un porcentaje de descuento mayor a cero, calculamos el precio neto.
+                        // Usamos '100m' para obligar a C# a procesarlo como un tipo decimal exacto y evitar errores de redondeo.
+                        decimal realPrice = product.price;
+                        if (product.discountPercentage > 0)
+                        {
+                            realPrice = product.price - (product.price * ((decimal)product.discountPercentage / 100m));
+                        }
+
+                        // Creamos la línea de detalle con el precio histórico/congelado (YA CON EL DESCUENTO APLICADO)
                         var detail = new OrderDetail
                         {
                             productId = item.productId,
                             quantity = item.quantity,
-                            price = product.price // Usamos el 'price' real de tu base de datos
+                            price = realPrice
                         };
 
                         order.orderDetails.Add(detail);
 
-                        // Calculamos el subtotal acumulado basándonos en la DB por seguridad
-                        totalCalculado += (product.price * item.quantity);
+                        // Calculamos el subtotal acumulado basándonos en el precio real neto por seguridad
+                        totalAmount += (realPrice * item.quantity);
 
-                        // Mapeamos el objeto para el request sanitizando el UnitPrice
+                        // Mapeamos el objeto para el request de Mercado Pago usando el precio neto unitario recalculado
                         preferenceItems.Add(new PreferenceItemRequest
                         {
-                            Title = product.title, // Tomamos el nombre real de la DB
+                            Title = product.title,
                             Quantity = item.quantity,
-                            // Forzamos un redondeo a 2 decimales para evitar floats extraños
-                            UnitPrice = Math.Round((decimal)product.price, 2),
+                            // Forzamos un redondeo a 2 decimales sobre el precio real con descuento
+                            UnitPrice = Math.Round(realPrice, 2),
                             CurrencyId = "ARS"
                         });
                     }
 
-                    // Asignamos el monto final total calculado a la orden (camelCase)
-                    order.totalAmount = totalCalculado;
+                    // Asignamos el monto final total acumulado (con todos los descuentos aplicados) a la orden
+                    order.totalAmount = totalAmount;
 
                     // 3. Guardamos la orden y sus detalles en la DB pasándole el token a SaveChangesAsync
                     await _orderRepository.CreateAsync(order, cancellationToken);
                     await _orderRepository.SaveChangesAsync(cancellationToken);
 
-                    // 4. CONFIGURACIÓN DE URLS - DIRECTA Y FIJA PARA TU PC LOCAL
+                    // 4. CONFIGURACIÓN DE URLS UNIFICADA (MANDAMOS SIEMPRE AL BACKEND PARA ASEGURAR EL IMPACTO EN DB)
                     // Usamos el puerto HTTPS de tu API para que Mercado Pago acepte el AutoReturn en local
                     var successUrl = "https://localhost:44364/api/MercadoPago/payment-return";
                     var failureUrl = "https://localhost:44364/api/MercadoPago/payment-return";
@@ -128,14 +137,16 @@ namespace ApiComponents.Services
 
                     var autoReturnBehavior = "approved";
 
-                    // Si el backend detecta de forma estricta que está montado en MonsterASP, pisa con HTTPS de GitHub
+                    // Si el backend detecta de forma estricta que está montado en MonsterASP (Producción)
                     if (_env.IsProduction())
                     {
-                        successUrl = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result";
-                        failureUrl = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result";
-                        pendingUrl = "https://claudiocds1987.github.io/angular-ecommerce-v20/#/payment-result";
+                        // Inyectamos tu dominio real extraído de tu panel de MonsterASP
+                        string dominioMonster = "https://apicomponents.runasp.net";
 
-                        // Activamos el retorno automático únicamente en producción porque las URLs usan HTTPS seguro
+                        successUrl = $"{dominioMonster}/api/MercadoPago/payment-return";
+                        failureUrl = $"{dominioMonster}/api/MercadoPago/payment-return";
+                        pendingUrl = $"{dominioMonster}/api/MercadoPago/payment-return";
+
                         autoReturnBehavior = "approved";
                     }
 
