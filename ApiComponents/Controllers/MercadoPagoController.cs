@@ -23,6 +23,10 @@ namespace ApiComponents.Controllers
         // El backend crea una preferencia en MercadoPago y devuelve el preferenceId.
         // El usuario es redirigido al checkout de MercadoPago con ese ID.
         // Esto ocurre inmediatamente al iniciar el flujo de pago.
+        // [FromBody] indica que el parámetro se obtiene desde el cuerpo del request.
+        // El JSON enviado por el frontend se convierte (mapea) automáticamente en un objeto CartDto.
+        // En objetos complejos funciona igual sin [FromBody], pero se recomienda por claridad.
+        // En tipos simples (string, int, etc.) es obligatorio si queremos que el valor venga del body.
         // -----------------------------------------------------------------------------------------------------------------
 
         [HttpPost("create-preference")]
@@ -43,8 +47,7 @@ namespace ApiComponents.Controllers
             }
         }
 
-        // 🚀 NUEVO ENDPOINT: ESTE ES EL QUE LLAMA TU ANGULAR EN PRODUCCIÓN (Y EN LOCAL)
-        // Se encarga de recibir la confirmación desde el frontend y actualizar la base de datos.
+        // [HttpPost("confirm-payment")] Se encarga de recibir la confirmación del pago desde el frontend y actualizar la base de datos.
         [HttpPost("confirm-payment")]
         public async Task<IActionResult> ConfirmPayment(
             [FromQuery] string preferenceId,
