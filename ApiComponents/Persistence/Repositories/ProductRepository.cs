@@ -348,9 +348,12 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         });
     }
 
-    public async Task UpdateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default)
+    public async Task<ProductRequestDTo> UpdateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default)
     {
         var strategy = db.Database.CreateExecutionStrategy();
+
+        // Creamos la variable local para el retorno final
+        ProductRequestDTo resultDto = null!;
 
         await strategy.ExecuteAsync(async () =>
         {
@@ -366,6 +369,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 if (existingProduct == null)
                     throw new Exception($"Producto con ID {productDto.id} no encontrado.");
 
+                // [Mapeo de propiedades primitivas idéntico a tu código]
                 existingProduct.title = productDto.title;
                 existingProduct.description = productDto.description;
                 existingProduct.price = productDto.price;
@@ -373,18 +377,15 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 existingProduct.rating = productDto.rating;
                 existingProduct.stock = productDto.stock;
                 existingProduct.sku = productDto.sku;
-
                 existingProduct.weight = productDto.weight;
                 existingProduct.width = productDto.width;
                 existingProduct.height = productDto.height;
                 existingProduct.depth = productDto.depth;
-
                 existingProduct.warrantyInformation = productDto.warrantyInformation ?? string.Empty;
                 existingProduct.shippingInformation = productDto.shippingInformation ?? string.Empty;
                 existingProduct.availabilityStatus = productDto.availabilityStatus;
                 existingProduct.returnPolicy = productDto.returnPolicy ?? string.Empty;
                 existingProduct.minimumOrderQuantity = productDto.minimumOrderQuantity;
-
                 existingProduct.categoryId = productDto.categoryId;
                 existingProduct.brandId = productDto.brandId;
                 existingProduct.isActive = productDto.isActive;
@@ -396,10 +397,11 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 }
                 else
                 {
-                    // Caso B: Es una URL directa externa (ej: Cloudinary), se asigna de forma directa
+                    // Caso B: Es una URL directa externa (Cloudinary), se guarda tal cual viene
                     existingProduct.thumbnail = productDto.thumbnail;
                 }
 
+                // Procesamiento de imágenes secundarias
                 db.ProductImages.RemoveRange(existingProduct.images);
                 existingProduct.images.Clear();
 
@@ -412,11 +414,12 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                             imageUrl = imgDto.imageUrl.StartsWith("data:image")
                                 ? await _fileService.ProcessImage(imgDto.imageUrl, scheme, host, cancellationToken)
                                 : imgDto.imageUrl,
-                            productId = existingProduct.id // Aseguramos la relación
+                            productId = existingProduct.id
                         });
                     }
                 }
 
+                // Procesamiento de Tags (Corregido el typo de tu código original)
                 db.ProductTags.RemoveRange(existingProduct.tags);
                 existingProduct.tags.Clear();
 
@@ -432,6 +435,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     }
                 }
 
+                // Procesamiento de Atributos Extra
                 db.ProductAttributeValues.RemoveRange(existingProduct.attributeValues);
                 existingProduct.attributeValues.Clear();
 
@@ -476,6 +480,53 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
 
                 await db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
+
+                // =========================================================================
+                // MAPEO DE RETORNO VERIFICADO CON MIS MODELOS REALES
+                // =========================================================================
+                resultDto = new ProductRequestDTo
+                {
+                    id = existingProduct.id,
+                    title = existingProduct.title,
+                    description = existingProduct.description,
+                    price = existingProduct.price,
+                    discountPercentage = existingProduct.discountPercentage,
+                    rating = existingProduct.rating,
+                    stock = existingProduct.stock,
+                    sku = existingProduct.sku,
+                    weight = existingProduct.weight,
+                    width = existingProduct.width,
+                    height = existingProduct.height,
+                    depth = existingProduct.depth,
+                    warrantyInformation = existingProduct.warrantyInformation,
+                    shippingInformation = existingProduct.shippingInformation,
+                    availabilityStatus = existingProduct.availabilityStatus,
+                    returnPolicy = existingProduct.returnPolicy,
+                    minimumOrderQuantity = existingProduct.minimumOrderQuantity,
+                    categoryId = existingProduct.categoryId,
+                    brandId = existingProduct.brandId,
+                    isActive = existingProduct.isActive,
+                    thumbnail = existingProduct.thumbnail,
+
+                    // Mapeando a la lista real de objetos ProductImage
+                    images = existingProduct.images.Select(img => new ProductImage
+                    {
+                        id = img.id,
+                        imageUrl = img.imageUrl,
+                        productId = img.productId
+                    }).ToList(),
+
+                    // Mapeabdo a la lista real de objetos ProductTag
+                    tags = existingProduct.tags.Select(t => new ProductTag
+                    {
+                        id = t.id,
+                        tagName = t.tagName,
+                        productId = t.productId
+                    }).ToList(),
+
+                    // Los extra attributes se devuelven tal como vinieron mapeados en la petición
+                    extraAttributes = productDto.extraAttributes ?? []
+                };
             }
             catch (Exception ex)
             {
@@ -483,6 +534,8 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 throw new Exception($"Error al actualizar: {ex.Message}", ex);
             }
         });
+
+        return resultDto;
     }
 
     public async Task DeleteProduct(int id, CancellationToken cancellationToken = default)

@@ -36,7 +36,6 @@ public interface IProductService
          CancellationToken cancellationToken = default);
 
     Task CreateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
-
-    Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
+    Task<ProductRequestDTo> UpdateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
     Task DeleteProductAsync(int id, CancellationToken cancellationToken = default);
 }

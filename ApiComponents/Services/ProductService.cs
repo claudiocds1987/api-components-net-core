@@ -1,11 +1,9 @@
 ﻿using ApiComponents.DTOs;
 using ApiComponents.Models;
-using ApiComponents.Persistence.Context;
 using ApiComponents.Persistence.Repositories;
 using AutoMapper;
 using CsvHelper;
 using CsvHelper.Configuration;
-using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
 namespace ApiComponents.Services;
@@ -301,6 +299,7 @@ public class ProductService(IProductRepository productRepo, IMapper mapper, IFil
     };
 
     public async Task CreateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default) => await productRepo.CreateProduct(product, scheme, host, cancellationToken);
-    public async Task UpdateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default) => await productRepo.UpdateProduct(product, scheme, host, cancellationToken);
+    public async Task<ProductRequestDTo> UpdateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default)
+    => await productRepo.UpdateProduct(product, scheme, host, cancellationToken);
     public async Task DeleteProductAsync(int id, CancellationToken cancellationToken = default) => await productRepo.DeleteProduct(id, cancellationToken);
 }

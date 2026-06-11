@@ -102,23 +102,20 @@ public class ProductController(IProductService productService) : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductRequestDTo productDto)
     {
-        if (id != productDto.id)
-            return BadRequest(new { message = "El ID no coincide." });
-
+        if (id != productDto.id) return BadRequest(new { message = "El ID no coincide." });
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         try
         {
-            await productService.UpdateProductAsync(productDto, Request.Scheme, Request.Host.Value);
-            return Ok(new { message = "Producto actualizado correctamente", data = productDto });
+            // Capturamos el DTO con los IDs e imágenes reales procesadas
+            var updatedProduct = await productService.UpdateProductAsync(productDto, Request.Scheme, Request.Host.Value);
+
+            // Devolvemos ese objeto Product actualizado en la propiedad 'data'
+            return Ok(new { message = "Producto actualizado correctamente", data = updatedProduct });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new
-            {
-                message = "Error al actualizar el producto",
-                details = ex.Message
-            });
+            return StatusCode(500, new { message = "Error al actualizar el producto", details = ex.Message });
         }
     }
 
