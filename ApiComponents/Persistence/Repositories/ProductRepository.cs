@@ -538,15 +538,47 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         return resultDto;
     }
 
-    public async Task DeleteProduct(int id, CancellationToken cancellationToken = default)
+    public async Task<ProductRequestDTo> UpdateProductStatus(int id, bool isActive, CancellationToken cancellationToken = default)
     {
-        var product = await db.Products.FindAsync(new object[] { id }, cancellationToken);
-        if (product != null)
+        var strategy = db.Database.CreateExecutionStrategy();
+        ProductRequestDTo resultDto = null!;
+
+        await strategy.ExecuteAsync(async () =>
         {
-            product.isActive = false;
-            db.Entry(product).State = EntityState.Modified;
-            await db.SaveChangesAsync(cancellationToken);
-        }
+            using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                // Buscamos SOLO el producto raíz (sin relaciones, ahorrando memoria y CPU)
+                var existingProduct = await db.Products
+                    .FirstOrDefaultAsync(p => p.id == id, cancellationToken);
+
+                if (existingProduct == null)
+                    throw new Exception($"Producto con ID {id} no encontrado.");
+
+                // Modificamos únicamente la propiedad deseada
+                existingProduct.isActive = isActive;
+
+                db.Entry(existingProduct).State = EntityState.Modified;
+
+                await db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                // Devolvemos el DTO con el estado mínimo requerido o el objeto completo mapeado
+                resultDto = new ProductRequestDTo
+                {
+                    id = existingProduct.id,
+                    title = existingProduct.title,
+                    isActive = existingProduct.isActive
+                };
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw new Exception($"Error al cambiar estado: {ex.Message}", ex);
+            }
+        });
+
+        return resultDto;
     }
 
     // Helper wrapper to call file service without changing many small call sites

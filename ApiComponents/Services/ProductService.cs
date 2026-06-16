@@ -301,5 +301,8 @@ public class ProductService(IProductRepository productRepo, IMapper mapper, IFil
     public async Task CreateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default) => await productRepo.CreateProduct(product, scheme, host, cancellationToken);
     public async Task<ProductRequestDTo> UpdateProductAsync(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default)
     => await productRepo.UpdateProduct(product, scheme, host, cancellationToken);
-    public async Task DeleteProductAsync(int id, CancellationToken cancellationToken = default) => await productRepo.DeleteProduct(id, cancellationToken);
+
+    public async Task<ProductRequestDTo> UpdateProductStatusAsync(int id, bool isActive, CancellationToken cancellationToken = default)
+    => await productRepo.UpdateProductStatus(id, isActive, cancellationToken);
+
 }

@@ -119,17 +119,34 @@ public class ProductController(IProductService productService) : ControllerBase
         }
     }
 
+    // ENDPOINT PARA DAR DE BAJA/ALTA de un producto (pasa isActive a false o true)
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateProductStatus(int id, [FromQuery] bool isActive)
+    {
+        try
+        {
+            var updatedProduct = await productService.UpdateProductStatusAsync(id, isActive);
+            return Ok(new { message = $"Producto {(isActive ? "activado" : "desactivado")} correctamente", data = updatedProduct });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al cambiar el estado del producto", details = ex.Message });
+        }
+    }
+
+    // ENDPOINT PARA DAR DE BAJA (Cuando el frontend hace un HTTP DELETE, si bien se puede usar UpdateProductStatus directamente por protocolo hice DeleteProduct)
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
         try
         {
-            await productService.DeleteProductAsync(id);
-            return NoContent();
+            var updatedProduct = await productService.UpdateProductStatusAsync(id, false);
+            return Ok(new { message = "Producto dado de baja correctamente", data = updatedProduct });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return StatusCode(500, new { message = "Error al dar de baja el producto", details = ex.Message });
         }
     }
+
 }

@@ -35,8 +35,9 @@ namespace ApiComponents.Persistence.Repositories
             CancellationToken cancellationToken = default);
 
         Task CreateProduct(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
-        Task DeleteProduct(int id, CancellationToken cancellationToken = default);
         Task<ProductRequestDTo> UpdateProduct(ProductRequestDTo product, string scheme, string host, CancellationToken cancellationToken = default);
+
+        Task<ProductRequestDTo> UpdateProductStatus(int id, bool isActive, CancellationToken cancellationToken = default);
         Task<bool> ExistProduct(string title, CancellationToken cancellationToken = default); // Validamos por título ya que el ID es automático
     }
 }
