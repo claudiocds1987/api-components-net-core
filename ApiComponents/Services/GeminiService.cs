@@ -1,6 +1,5 @@
 ﻿using ApiComponents.DTOs;
 using ApiComponents.Persistence.Repositories;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -89,6 +88,7 @@ namespace ApiComponents.Services
             INSTRUCCIONES:
             - Analizá semánticamente la consulta: detectá categoría, género, color, material, estilo, uso, marca, precio aproximado, etc.
             - Traducí mentalmente los términos (""plateado"" = silver, ""reloj"" = watch, ""mujer"" = womens, ""perfume"" = fragrance, etc.)
+            - IMPORTANTE SOBRE CATEGORÍAS: En nuestro catálogo, las categorías compuestas usan GUIONES MEDIOS en lugar de espacios. Por ejemplo: ""smart tv"" es ""smart-tv"", ""relojes de hombre"" o ""mens watches"" es ""mens-watches"", ""accesorios de cocina"" es ""kitchen-accessories"". Tené esto muy en cuenta al evaluar coincidencias en el campo 'category'.
             - Buscá coincidencias en title, brand, category y tags de cada producto.
             - Excluí productos del género opuesto si la consulta especifica género.
             - Asigná un score de 0 a 100 según relevancia.
@@ -101,15 +101,10 @@ namespace ApiComponents.Services
             {
                 var rawResponse = await _aiRepo.GenerateTextAsync(prompt, cancellationToken);
 
-                // LOG: Detalle para debugging sin usar Console
-                _logger.LogDebug("Raw AI response length: {Length}", rawResponse?.Length ?? 0);
-
                 var cleanJson = rawResponse
                     .Replace("```json", "")
                     .Replace("```", "")
                     .Trim();
-
-                _logger.LogDebug("Clean JSON preview: {Preview}", cleanJson.Length > 200 ? cleanJson[..200] : cleanJson);
 
                 // Intent: ser tolerante con la forma en que Gemini devuelve el JSON.
                 // Buscamos el array "matches" dentro del texto y lo parseamos manualmente.
@@ -199,23 +194,22 @@ namespace ApiComponents.Services
                         }
                     }
 
-                    _logger.LogDebug("Matches count: {Count}", matches.Count);
-
                     // Si la IA no devolvió matches, aplicamos un fallback local simple: búsqueda por tokens
                     if (!matches.Any())
                     {
-                        _logger.LogDebug("AI returned no matches, running local fallback matching.");
 
                         var fallback = new List<ProductMatch>();
-                        var rawTokens = userQuestion.ToLowerInvariant().Split(new[] { ' ', ',', '.', '-' }, StringSplitOptions.RemoveEmptyEntries);
 
-                        // Stopwords y mapeo de sinónimos básicos (español -> inglés y variantes)
+                        // Normalizamos la pregunta del usuario: reemplazamos guiones por espacios para separar bien los tokens
+                        var cleanQuestion = userQuestion.Replace("-", " ").ToLowerInvariant();
+                        var rawTokens = cleanQuestion.Split(new[] { ' ', ',', '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+                        // Stopwords y mapeo de sinónimos básicos
                         var stopwords = new HashSet<string> { "de", "del", "la", "el", "los", "las", "para", "con", "y", "a" };
-
                         var synonyms = new Dictionary<string, string[]>
                         {
-                            { "mujer", new[] { "woman", "women", "women's", "female", "femenino" } },
-                            { "hombre", new[] { "man", "men", "male", "masculino" } },
+                            { "mujer", new[] { "woman", "women", "womens", "female", "femenino" } },
+                            { "hombre", new[] { "man", "men", "mens", "male", "masculino" } },
                             { "reloj", new[] { "watch", "timepiece" } },
                             { "relojes", new[] { "watch", "watches" } },
                             { "plateado", new[] { "silver" } },
@@ -228,7 +222,7 @@ namespace ApiComponents.Services
                         var tokens = new List<string>();
                         foreach (var t in rawTokens)
                         {
-                            if (t.Length <= 2) continue; // ignorar tokens muy cortos
+                            if (t.Length <= 2) continue;
                             if (stopwords.Contains(t)) continue;
                             tokens.Add(t);
                             if (synonyms.TryGetValue(t, out var syns)) tokens.AddRange(syns);
@@ -236,19 +230,25 @@ namespace ApiComponents.Services
 
                         foreach (var p in products)
                         {
-                            var hay = (p.title + " " + p.brand + " " + p.category + " " + string.Join(" ", p.tags ?? new List<string>())).ToLowerInvariant();
+                            // Al armar el string de búsqueda, incluimos los campos originales 
+                            // Y ADEMÁS una versión donde reemplazamos los guiones por espacios ("smart-tv" -> "smart tv")
+                            var originalHay = (p.title + " " + p.brand + " " + p.category + " " + string.Join(" ", p.tags ?? new List<string>())).ToLowerInvariant();
+                            var normalizedHay = originalHay.Replace("-", " "); // Así "smart-tv" se vuelve "smart tv" y matchea directo
+
+                            var completeHay = originalHay + " " + normalizedHay;
+
                             var score = 0.0;
                             foreach (var t in tokens.Distinct())
                             {
-                                if (hay.Contains(t)) score += 25; // cada token suma más peso
+                                if (completeHay.Contains(t)) score += 25;
                             }
-                            if (score >= 40) // aplicar mismo umbral que pedimos a la IA
+
+                            if (score >= 40)
                             {
                                 fallback.Add(new ProductMatch { Id = p.id, Score = score });
                             }
                         }
 
-                        // Ordenamos y retornamos max 20
                         return fallback.OrderByDescending(f => f.Score).Take(20).ToList();
                     }
 
