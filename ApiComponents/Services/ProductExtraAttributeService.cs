@@ -48,5 +48,14 @@ namespace ApiComponents.Services
             // 2. Persistencia: Enviamos todos los cambios a la base de datos en una sola transacción
             await repo.SaveChangesAsync();
         }
+
+        public async Task DeleteExtraAttributeAsync(int extraAttributeId)
+        {
+            var definition = await repo.GetDefinitionByIdAsync(extraAttributeId);
+            if (definition == null) throw new System.Collections.Generic.KeyNotFoundException("Atributo no encontrado");
+
+            repo.RemoveExtraAttribute(definition);
+            await repo.SaveChangesAsync();
+        }
     }
 }

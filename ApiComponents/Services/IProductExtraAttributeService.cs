@@ -6,5 +6,6 @@ namespace ApiComponents.Services
     {
         Task<IEnumerable<ProductExtraAttributesDto>> GetExtraAttributesByCategoryId(int categoryId);
         Task SaveExtraAttributes(int categoryId, List<ProductExtraAttributesDto> attributes);
+        Task DeleteExtraAttributeAsync(int extraAttributeId);
     }
 }

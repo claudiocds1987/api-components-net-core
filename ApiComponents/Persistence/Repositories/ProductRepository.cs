@@ -48,7 +48,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 brandId = p.brandId,
                 isActive = p.isActive,
                 // Mapeo de Atributos Extra
-                extraAttributes = p.attributeValues.Select(av => new ExtraAttributeDto
+                extraAttributes = p.extraAttributeValues.Select(av => new ExtraAttributeDto
                 {
                     name = av.attributeDefinition.name,
                     value = av.value,
@@ -90,7 +90,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             .Include(p => p.category)
             .Include(p => p.brand)
             .Include(p => p.tags)
-            .Include(p => p.attributeValues)
+            .Include(p => p.extraAttributeValues)
                 .ThenInclude(av => av.attributeDefinition)
             .AsQueryable();
 
@@ -363,7 +363,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 var existingProduct = await db.Products
                     .Include(p => p.images)
                     .Include(p => p.tags)
-                    .Include(p => p.attributeValues)
+                    .Include(p => p.extraAttributeValues)
                     .FirstOrDefaultAsync(p => p.id == productDto.id, cancellationToken);
 
                 if (existingProduct == null)
@@ -436,8 +436,8 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 }
 
                 // Procesamiento de Atributos Extra
-                db.ProductAttributeValues.RemoveRange(existingProduct.attributeValues);
-                existingProduct.attributeValues.Clear();
+                db.ProductAttributeValues.RemoveRange(existingProduct.extraAttributeValues);
+                existingProduct.extraAttributeValues.Clear();
 
                 if (productDto.extraAttributes != null && productDto.extraAttributes.Any())
                 {
@@ -466,7 +466,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
 
                         if (finalDefId.HasValue)
                         {
-                            existingProduct.attributeValues.Add(new ProductExtraAttributeValue
+                            existingProduct.extraAttributeValues.Add(new ProductExtraAttributeValue
                             {
                                 productId = existingProduct.id!.Value,
                                 attributeDefinitionId = finalDefId.Value,

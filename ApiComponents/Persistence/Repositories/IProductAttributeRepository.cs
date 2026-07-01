@@ -7,6 +7,9 @@ namespace ApiComponents.Persistence.Repositories
         Task<IEnumerable<ProductExtraAttributeDefinition>> GetExtraAttributesByCategoryId(int categoryId);
         Task AddExtraAttributes(ProductExtraAttributeDefinition attribute);
         void UpdateExtraAttributes(ProductExtraAttributeDefinition attribute);
+
+        Task<ProductExtraAttributeDefinition?> GetDefinitionByIdAsync(int id);
+        void RemoveExtraAttribute(ProductExtraAttributeDefinition extraAttribute);
         Task SaveChangesAsync();
     }
 }

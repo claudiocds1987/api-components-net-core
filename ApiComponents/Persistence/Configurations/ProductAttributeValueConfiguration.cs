@@ -19,14 +19,14 @@ namespace ApiComponents.Persistence.Configurations
             // --- RELACIONES ---
 
             builder.HasOne(v => v.product)
-                .WithMany(p => p.attributeValues)
+                .WithMany(p => p.extraAttributeValues)
                 .HasForeignKey(v => v.productId)
-                .OnDelete(DeleteBehavior.Cascade); // Si borras el producto, se borran sus specs
+                .OnDelete(DeleteBehavior.Cascade); // Al borrar el producto, se borran sus specs
 
             builder.HasOne(v => v.attributeDefinition)
                 .WithMany(d => d.attributeValues)
                 .HasForeignKey(v => v.attributeDefinitionId)
-                .OnDelete(DeleteBehavior.Restrict); // No borramos la definición si hay valores usándola
+               .OnDelete(DeleteBehavior.Cascade); // Al borrar la definición del atributo, se borran sus valores asociados
 
             // --- ÍNDICES Y PERFORMANCE ---
 

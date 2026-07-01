@@ -56,4 +56,16 @@ public class ProductExtraAttributesController(IProductExtraAttributeService attr
             });
         }
     }
+
+    [HttpDelete("{extraAttributeId}")]
+    public async Task<IActionResult> Delete(int extraAttributeId)
+    {
+        try
+        {
+            await attributeService.DeleteExtraAttributeAsync(extraAttributeId);
+            return Ok(new { message = "Atributo y sus valores asociados eliminados correctamente." });
+        }
+        catch (System.Collections.Generic.KeyNotFoundException) { return NotFound(); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
 }

@@ -66,7 +66,7 @@ namespace ApiComponents.Models
         /// <summary>
         /// Relación con los atributos dinámicos del producto (EAV)
         /// </summary>
-        public ICollection<ProductExtraAttributeValue> attributeValues { get; set; } = new List<ProductExtraAttributeValue>();
+        public ICollection<ProductExtraAttributeValue> extraAttributeValues { get; set; } = new List<ProductExtraAttributeValue>();
 
         public bool isActive { get; set; } = true;
     }

@@ -25,6 +25,12 @@ namespace ApiComponents.Persistence.Repositories
             db.ProductAttributeDefinitions.Update(attribute);
         }
 
+        public async Task<ProductExtraAttributeDefinition?> GetDefinitionByIdAsync(int id)
+            => await db.ProductAttributeDefinitions.FindAsync(id);
+
+        public void RemoveExtraAttribute(ProductExtraAttributeDefinition extraAttribute)
+            => db.ProductAttributeDefinitions.Remove(extraAttribute);
+
         public async Task SaveChangesAsync()
         {
             await db.SaveChangesAsync();

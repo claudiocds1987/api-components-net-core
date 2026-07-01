@@ -185,7 +185,7 @@ public class ProductService(IProductRepository productRepo, IMapper mapper, IFil
             categoryId = currentCatId,
             brandId = int.Parse(csv.GetField("brandId") ?? "0"),
 
-            attributeValues = [],
+            extraAttributeValues = [],
             images = [],
             tags = []
         };
@@ -241,7 +241,7 @@ public class ProductService(IProductRepository productRepo, IMapper mapper, IFil
 
             if (isValid)
             {
-                product.attributeValues.Add(new ProductExtraAttributeValue
+                product.extraAttributeValues.Add(new ProductExtraAttributeValue
                 {
                     attributeDefinitionId = definition.id,
                     value = rawValue

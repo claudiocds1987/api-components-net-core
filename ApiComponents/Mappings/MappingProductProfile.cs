@@ -19,7 +19,7 @@ namespace ApiComponents.Mappings
             // Se usa cuando el usuario entra a ver un solo producto y necesitas sus imágenes, reviews y extra atributos.
             CreateMap<Product, ProductResponseDto>()
                 // Conectamos la lista de la DB con la lista de DTOs planos del detalle
-                .ForMember(dest => dest.extraAttributes, opt => opt.MapFrom(src => src.attributeValues));
+                .ForMember(dest => dest.extraAttributes, opt => opt.MapFrom(src => src.extraAttributeValues));
         }
     }
 }
