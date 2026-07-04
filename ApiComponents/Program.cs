@@ -1,7 +1,8 @@
-using ApiComponents.Persistence.Context;
-using ApiComponents.Persistence.Repositories;
 using ApiComponents.Persistence.Seed;
 using ApiComponents.Services;
+using ApiComponents.Persistence.Context;
+using ApiComponents.Persistence.Repositories;
+using ApplicationRepos = ApiComponents.Persistence.Repositories;
 using ApiComponents.GraphQL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -67,12 +68,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }));
 
 // --- 5. INYECCIÓN DE DEPENDENCIAS REPOSITORIOS ---
+// Registrar repositorios (algunos siguen en Persistence; ProductRepository está en Infrastructure)
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGeminiRepository, GeminiRepository>();
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
+// Correct registration: interface and implementation both from Persistence.Repositories
+builder.Services.AddScoped<ApplicationRepos.IProductRepository, ApplicationRepos.ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
@@ -96,6 +99,11 @@ builder.Services.AddAutoMapper(cfg =>
     // Localiza el ensamblado de MappingProfile y registra todos los perfiles allí
     cfg.AddMaps(typeof(ApiComponents.Mappings.MappingProductExtraAttributesProfile).Assembly);
 });
+
+// --- Mediator ---
+// Registrar MediatR para handlers ubicados en Application
+    // Registrar handlers MediatR desde el ensamblado correcto (Features en este proyecto)
+    builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApiComponents.Features.Products.Commands.CreateProduct.CreateProductCommandHandler).Assembly));
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
 // Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.

@@ -1,13 +1,19 @@
 ﻿using ApiComponents.DTOs;
 using ApiComponents.Models;
 using ApiComponents.Services;
+using MediatR;
+using ApiComponents.Features.Products.Commands.CreateProduct;
+using ApiComponents.Features.Products.Commands.UpdateProduct;
+using ApiComponents.Features.Products.Commands.UpdateProductStatus;
+using ApiComponents.Features.Products.Queries.GetProducts;
+using ApiComponents.Features.Products.Queries.GetProductById;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiComponents.Controllers;
 
 [Route("api/products")]
 [ApiController]
-public class ProductController(IProductService productService) : ControllerBase
+public class ProductController(ISender sender) : ControllerBase
 {
 
     [HttpGet]
@@ -25,8 +31,8 @@ public class ProductController(IProductService productService) : ControllerBase
     {
         try
         {
-            var result = await productService.GetAllProductsAsync(
-                page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
+            var query = new GetProductsQuery(page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
+            var result = await sender.Send(query);
             return Ok(result);
         }
         catch (Exception ex)
@@ -50,8 +56,8 @@ public class ProductController(IProductService productService) : ControllerBase
     {
         try
         {
-            var result = await productService.GetProductsAdminAsync(
-                page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive);
+            var query = new GetProductsQuery(page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive, true);
+            var result = await sender.Send(query);
             return Ok(result);
         }
         catch (Exception ex)
@@ -63,7 +69,7 @@ public class ProductController(IProductService productService) : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
-        var product = await productService.GetProductByIdAsync(id);
+        var product = await sender.Send(new GetProductByIdQuery(id));
 
         // Al usar el Product? en el servicio, esto elimina cualquier warning 
         // y asegura que Angular reciba un 404 real si el ID no existe.
@@ -84,7 +90,8 @@ public class ProductController(IProductService productService) : ControllerBase
 
         try
         {
-            await productService.CreateProductAsync(product, Request.Scheme, Request.Host.Value);
+            var command = new CreateProductCommand(product, Request.Scheme, Request.Host.Value);
+            await sender.Send(command);
             return Ok(new { message = "Producto creado con éxito", data = product });
         }
         catch (Exception ex)
@@ -108,7 +115,7 @@ public class ProductController(IProductService productService) : ControllerBase
         try
         {
             // Capturamos el DTO con los IDs e imágenes reales procesadas
-            var updatedProduct = await productService.UpdateProductAsync(productDto, Request.Scheme, Request.Host.Value);
+            var updatedProduct = await sender.Send(new UpdateProductCommand(productDto, Request.Scheme, Request.Host.Value));
 
             // Devolvemos ese objeto Product actualizado en la propiedad 'data'
             return Ok(new { message = "Producto actualizado correctamente", data = updatedProduct });
@@ -125,7 +132,7 @@ public class ProductController(IProductService productService) : ControllerBase
     {
         try
         {
-            var updatedProduct = await productService.UpdateProductStatusAsync(id, isActive);
+            var updatedProduct = await sender.Send(new UpdateProductStatusCommand(id, isActive));
             return Ok(new { message = $"Producto {(isActive ? "activado" : "desactivado")} correctamente", data = updatedProduct });
         }
         catch (Exception ex)
@@ -140,7 +147,7 @@ public class ProductController(IProductService productService) : ControllerBase
     {
         try
         {
-            var updatedProduct = await productService.UpdateProductStatusAsync(id, false);
+            var updatedProduct = await sender.Send(new UpdateProductStatusCommand(id, false));
             return Ok(new { message = "Producto dado de baja correctamente", data = updatedProduct });
         }
         catch (Exception ex)

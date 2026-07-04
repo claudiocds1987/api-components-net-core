@@ -1,28 +1,6 @@
 <Solution>
-  <Folder Name="/Agents/" />
-  <Folder Name="/Agents/skills/" />
-  <Folder Name="/Agents/skills/dotnet-developer/">
-    <File Path="SKILL.md" />
-  </Folder>
-  <Folder Name="/Agents/skills/dotnet-developer/references/">
-    <File Path="controllers.md" />
-    <File Path="dependency-injection.md" />
-    <File Path="ef-core-fluent-api.md" />
-    <File Path="repositories-pattern.md" />
-    <File Path="services-business-logic.md" />
-    <File Path="testing-fundamentals.md" />
-  </Folder>
-  <Folder Name="/Elementos de la solución/">
-    <File Path="APUNTES.txt" />
-    <File Path="CREAR-PASO-A-PASO-UNA-ENTIDAD-TABLA.txt" />
-    <File Path="explicacion-atributos-extra-de-producto.md" />
-    <File Path="explicacion-AuthController.md" />
-    <File Path="flujo-frontend-GeminiController.md" />
-    <File Path="GRAPHQL_IMPLEMENTATION.md" />
-    <File Path="hacer-publish.txt" />
-    <File Path="MIGRATION_STEPS.txt" />
-    <File Path="Seguridad-api-keys.txt" />
-  </Folder>
-  <Folder Name="/Solution Items/" />
+  <Project Path="ApiComponents.Application/ApiComponents.Application.csproj" />
+  <Project Path="ApiComponents.Domain/ApiComponents.Domain.csproj" />
+  <Project Path="ApiComponents.Infrastructure/ApiComponents.Infrastructure.csproj" />
   <Project Path="ApiComponents/ApiComponents.csproj" />
 </Solution>

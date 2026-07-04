@@ -69,5 +69,46 @@ namespace ApiComponents.Models
         public ICollection<ProductExtraAttributeValue> extraAttributeValues { get; set; } = new List<ProductExtraAttributeValue>();
 
         public bool isActive { get; set; } = true;
+
+        // --- Reglas de negocio (DDD) ---
+        // Validaciones encapsuladas que pertenecen al agregado Product
+        public void ValidateForCreate()
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                throw new InvalidOperationException("El título es obligatorio.");
+
+            if (price <= 0)
+                throw new InvalidOperationException("El precio debe ser mayor a 0.");
+
+            if (stock < 0)
+                throw new InvalidOperationException("El stock no puede ser negativo.");
+
+            if (minimumOrderQuantity < 1)
+                minimumOrderQuantity = 1;
+        }
+
+        public void UpdatePrice(decimal newPrice)
+        {
+            if (newPrice <= 0)
+                throw new InvalidOperationException("El precio debe ser mayor a 0.");
+
+            price = newPrice;
+        }
+
+        public void ChangeActiveState(bool active) => isActive = active;
+
+        public void AddImage(ProductImage image)
+        {
+            if (image == null) return;
+            images ??= new List<ProductImage>();
+            images.Add(image);
+        }
+
+        public void AddTag(ProductTag tag)
+        {
+            if (tag == null) return;
+            tags ??= new List<ProductTag>();
+            tags.Add(tag);
+        }
     }
 }
