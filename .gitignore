@@ -25,15 +25,7 @@ UserSecretsId
 # TUS ARCHIVOS PERSONALES
 # ==========================================
 # Evitamos subir tus notas de trabajo
-APUNTES.txt
-CREAR-PASO-A-PASO-UNA-ENTIDAD-TABLA.txt
-MIGRATION_STEPS.txt
-Seguridad-api-keys.txt
-flujo-frontend-GeminiController.md
-hacer-publish.txt
-GRAPHQL_IMPLEMENTATION.md
-explicacion-AuthController.md
-explicacion-atributos-extra-de-producto.md
+Documentation/
 
 # ==========================================
 # GESTIÓN DE APPSETTINGS
