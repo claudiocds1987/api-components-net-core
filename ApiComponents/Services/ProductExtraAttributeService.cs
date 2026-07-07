@@ -1,6 +1,6 @@
-﻿using ApiComponents.DTOs;
-using ApiComponents.Models;
-using ApiComponents.Persistence.Repositories;
+﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Repositories;
+using ApiComponents.Domain.Models;
 using AutoMapper;
 
 namespace ApiComponents.Services

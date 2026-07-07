@@ -1,8 +1,7 @@
+using ApiComponents.Infrastructure;
 using ApiComponents.Persistence.Seed;
 using ApiComponents.Services;
-using ApiComponents.Persistence.Context;
-using ApiComponents.Persistence.Repositories;
-using ApplicationRepos = ApiComponents.Persistence.Repositories;
+using ApiComponents.Infrastructure.Context;
 using ApiComponents.GraphQL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +9,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text;
+using ApiComponents.Application.Interfaces;
+using ApiComponents.Infrastructure.Services;
+using ApiComponents.Application.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,31 +57,36 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
+// --- 4. CONFIGURACIÓN DE BASE DE DATOS Y REPOSITORIOS ---
+// Al pasarle 'builder.Configuration', el método tiene acceso al connection string
+builder.Services.AddInfrastructure(builder.Configuration);
+
 // --- 4. CONFIGURACIÓN DE BASE DE DATOS ---
-var connectionString = builder.Configuration.GetConnectionString("Connection");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString, sqlOptions =>
-    {
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorNumbersToAdd: null
-        );
-    }));
+//var connectionString = builder.Configuration.GetConnectionString("Connection");
+//builder.Services.AddDbContext<AppDbContext>(options =>
+//    options.UseSqlServer(connectionString, sqlOptions =>
+//    {
+//        sqlOptions.EnableRetryOnFailure(
+//            maxRetryCount: 5,
+//            maxRetryDelay: TimeSpan.FromSeconds(10),
+//            errorNumbersToAdd: null
+//        );
+//    }));
 
 // --- 5. INYECCIÓN DE DEPENDENCIAS REPOSITORIOS ---
 // Registrar repositorios (algunos siguen en Persistence; ProductRepository está en Infrastructure)
-builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-builder.Services.AddScoped<ICountryRepository, CountryRepository>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IGeminiRepository, GeminiRepository>();
+//builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+//builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+//builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+//builder.Services.AddScoped<IUserRepository, UserRepository>();
+//builder.Services.AddScoped<IGeminiRepository, GeminiRepository>();
 // Correct registration: interface and implementation both from Persistence.Repositories
-builder.Services.AddScoped<ApplicationRepos.IProductRepository, ApplicationRepos.ProductRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<IBrandRepository, BrandRepository>();
-builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
-builder.Services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
+//builder.Services.AddScoped<ApplicationRepos.IProductRepository, ApplicationRepos.ProductRepository>();
+//builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+//builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+
+//builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+//builder.Services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
 // ---  INYECCIÓN DE DEPENDENCIAS SERVICIOS ---
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
@@ -97,13 +104,13 @@ builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddAutoMapper(cfg =>
 {
     // Localiza el ensamblado de MappingProfile y registra todos los perfiles allí
-    cfg.AddMaps(typeof(ApiComponents.Mappings.MappingProductExtraAttributesProfile).Assembly);
+    cfg.AddMaps(typeof(MappingProductExtraAttributesProfile).Assembly);
 });
 
 // --- Mediator ---
 // Registrar MediatR para handlers ubicados en Application
-    // Registrar handlers MediatR desde el ensamblado correcto (Features en este proyecto)
-    builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApiComponents.Features.Products.Commands.CreateProduct.CreateProductCommandHandler).Assembly));
+// Registrar handlers MediatR desde el ensamblado correcto (Features en este proyecto)
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApiComponents.Features.Products.Commands.CreateProduct.CreateProductCommandHandler).Assembly));
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
 // Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.

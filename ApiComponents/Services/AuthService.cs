@@ -1,6 +1,6 @@
-﻿using ApiComponents.DTOs;
-using ApiComponents.Models;
-using ApiComponents.Persistence.Repositories;
+﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Domain.Models;
+using ApiComponents.Application.Repositories;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

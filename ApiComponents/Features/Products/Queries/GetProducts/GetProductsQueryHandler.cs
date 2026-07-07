@@ -1,6 +1,7 @@
 using MediatR;
-using ApiComponents.Persistence.Repositories;
 using AutoMapper;
+using ApiComponents.Application.Repositories;
+using ApiComponents.Application.DTOs;
 
 namespace ApiComponents.Features.Products.Queries.GetProducts;
 
@@ -29,7 +30,7 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
         var (itemsPublic, totalPublic) = await _repo.GetProductsAsync(request.Page, request.Size, request.Search,
             request.CategoryId, request.BrandId, request.MinPrice, request.MaxPrice, request.SortBy, request.Order, request.IsActive, cancellationToken);
 
-        var dtosPublic = _mapper.Map<List<ApiComponents.DTOs.ProductDto>>(itemsPublic);
+        var dtosPublic = _mapper.Map<List<ProductDto>>(itemsPublic);
         return new { items = dtosPublic, totalItems = totalPublic };
     }
 }

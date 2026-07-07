@@ -1,4 +1,4 @@
-﻿using ApiComponents.DTOs;
+﻿using ApiComponents.Application.DTOs;
 
 namespace ApiComponents.Services
 {

@@ -6,11 +6,11 @@ public class ProductDto
     public string title { get; set; } = string.Empty;
     public string description { get; set; } = string.Empty;
     public decimal price { get; set; }
-    public decimal discountPercentage { get; set; }
-    public decimal rating { get; set; }
+    public double discountPercentage { get; set; }
     public int stock { get; set; }
-    public string sku { get; set; } = string.Empty;
+    public double rating { get; set; }
+    public string brand { get; set; } = string.Empty;
     public string thumbnail { get; set; } = string.Empty;
-    public int categoryId { get; set; }
-    public int brandId { get; set; }
+    public string category { get; set; } = string.Empty;
+    public List<ProductTagDto> tags { get; set; } = [];
 }

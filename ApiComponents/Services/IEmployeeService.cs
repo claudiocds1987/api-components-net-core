@@ -1,7 +1,5 @@
-﻿using ApiComponents.Models;
-using ApiComponents.DTOs;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using ApiComponents.Domain.Models;
+using ApiComponents.Application.DTOs;
 
 namespace ApiComponents.Services
 {

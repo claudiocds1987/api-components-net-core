@@ -1,4 +1,4 @@
-﻿using ApiComponents.DTOs;
+﻿using ApiComponents.Application.DTOs;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
 

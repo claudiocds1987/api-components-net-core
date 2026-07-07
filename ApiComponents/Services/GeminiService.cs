@@ -1,5 +1,6 @@
-﻿using ApiComponents.DTOs;
-using ApiComponents.Persistence.Repositories;
+using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Repositories;
+using AutoMapper;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -10,6 +11,7 @@ namespace ApiComponents.Services
         private readonly IGeminiRepository _aiRepo;
         private readonly IProductRepository _productRepo;
         private readonly ILogger<GeminiService> _logger;
+        private readonly IMapper _mapper;
 
         public GeminiService(IGeminiRepository aiRepo, IProductRepository productRepo, ILogger<GeminiService> logger)
         {
@@ -45,6 +47,8 @@ namespace ApiComponents.Services
         /// Un objeto de transferencia de datos <see cref="GeminiChatResponseDto"/> que encapsula un mensaje conversacional 
         /// de respuesta (Response) y el listado de productos (<see cref="List{ProductDto}"/>) ordenados por relevancia listos para renderizar.
         /// </summary>
+        /// 
+
         public async Task<GeminiChatResponseDto> QueryCatalogAsync(string userQuestion, CancellationToken cancellationToken = default)
         {
             // 1. Traemos los productos (solo los campos que Gemini necesita leer)
@@ -62,7 +66,7 @@ namespace ApiComponents.Services
                 category = p.category?.name ?? "General",
                 brand = p.brand?.name ?? "N/A",
                 thumbnail = p.thumbnail,
-                tags = p.tags?.Select(t => t.tagName).ToList() ?? new List<string>()
+                tags = p.tags != null ? p.tags.Select(t => new ProductTagDto { id = t.id ?? 0, tagName = t.tagName }).ToList() : []
             }).ToList();
 
             // 2. Armamos un catálogo resumido para Gemini (sin description larga → ahorra tokens)
@@ -439,7 +443,7 @@ namespace ApiComponents.Services
                 var originalHay = ((p.title ?? string.Empty) + " " +
                                    (p.brand ?? string.Empty) + " " +
                                    (p.category ?? string.Empty) + " " +
-                                   string.Join(" ", p.tags ?? new List<string>())).ToLowerInvariant();
+                                   string.Join(" ", p.tags ?? new List<ProductTagDto>())).ToLowerInvariant();
 
                 var normalizedHay = originalHay.Replace("-", " ");
                 var completeHay = originalHay + " " + normalizedHay;

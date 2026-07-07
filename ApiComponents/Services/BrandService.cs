@@ -1,5 +1,5 @@
-﻿using ApiComponents.Models;
-using ApiComponents.Persistence.Repositories;
+﻿using ApiComponents.Domain.Models;
+using ApiComponents.Application.Repositories;
 
 namespace ApiComponents.Services
 {

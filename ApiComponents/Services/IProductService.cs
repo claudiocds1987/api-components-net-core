@@ -1,6 +1,6 @@
 ﻿namespace ApiComponents.Services;
 
-using ApiComponents.DTOs;
+using ApiComponents.Application.DTOs;
 
 public interface IProductService
 {

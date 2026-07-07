@@ -48,19 +48,21 @@ public class Product
     public int categoryId { get; set; }
 
     [JsonIgnore]
-    public object? category { get; set; }
+    public ProductCategory? category { get; set; }
 
     [Required(ErrorMessage = "La marca es obligatoria.")]
     public int brandId { get; set; }
 
     [JsonIgnore]
-    public object? brand { get; set; }
+    public ProductBrand? brand { get; set; }
 
-    public List<object> images { get; set; } = new();
-    public List<object> tags { get; set; } = new();
-    public List<object> reviews { get; set; } = new();
+    public ICollection<ProductImage> images { get; set; } = new List<ProductImage>();
+    public ICollection<ProductTag> tags { get; set; } = new List<ProductTag>();
+    public ICollection<ProductReview> reviews { get; set; } = new List<ProductReview>();
 
-    public ICollection<object> extraAttributeValues { get; set; } = new List<object>();
+    //public ICollection<object> extraAttributeValues { get; set; } = new List<object>();
+    public ICollection<ProductExtraAttributeValue> extraAttributeValues { get; set; } = new List<ProductExtraAttributeValue>();
+
 
     public bool isActive { get; set; } = true;
 
@@ -90,17 +92,19 @@ public class Product
 
     public void ChangeActiveState(bool active) => isActive = active;
 
-    public void AddImage(object image)
+    public void AddImage(ProductImage image)
     {
         if (image == null) return;
-        images ??= new List<object>();
+        // Ya no necesitas inicializar con List<object> porque la propiedad es ICollection<ProductImage>
+        images ??= new List<ProductImage>();
         images.Add(image);
     }
 
-    public void AddTag(object tag)
+    public void AddTag(ProductTag tag)
     {
         if (tag == null) return;
-        tags ??= new List<object>();
+        // Ya no necesitas inicializar con List<object>
+        tags ??= new List<ProductTag>();
         tags.Add(tag);
     }
 }

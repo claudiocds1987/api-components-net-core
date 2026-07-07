@@ -1,5 +1,5 @@
 using MediatR;
-using ApiComponents.Persistence.Repositories;
+using ApiComponents.Application.Repositories;
 
 namespace ApiComponents.Features.Products.Commands.CreateProduct;
 

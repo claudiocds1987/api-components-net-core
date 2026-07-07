@@ -6,10 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>78a09959-1430-4c0f-861f-f35445660b8b</UserSecretsId>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="Infrastructure\ApiComponents.Infrastructure.csproj" />
-  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ApiComponents.Application\ApiComponents.Application.csproj" />
     <ProjectReference Include="..\ApiComponents.Infrastructure\ApiComponents.Infrastructure.csproj" />
@@ -42,8 +38,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Infrastructure\Context\" />
-    <Folder Include="Infrastructure\Repositories\" />
+    <Folder Include="DTOs\" />
+    <Folder Include="Mappings\" />
   </ItemGroup>
 
 </Project>

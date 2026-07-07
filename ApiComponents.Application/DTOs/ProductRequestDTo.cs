@@ -1,3 +1,5 @@
+using ApiComponents.Domain.Models;
+
 namespace ApiComponents.Application.DTOs;
 
 public class ProductRequestDTo
@@ -24,8 +26,7 @@ public class ProductRequestDTo
     public int brandId { get; set; }
     public bool isActive { get; set; } = true;
 
-    // Simplified children DTOs
-    public List<object>? images { get; set; }
-    public List<object>? tags { get; set; }
-    public List<object>? extraAttributes { get; set; }
+    public List<ProductImage> images { get; set; } = [];
+    public List<ProductTag> tags { get; set; } = [];
+    public List<ExtraAttributeDto> extraAttributes { get; set; } = [];
 }
