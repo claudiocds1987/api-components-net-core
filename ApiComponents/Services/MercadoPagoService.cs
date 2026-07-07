@@ -1,11 +1,11 @@
-﻿using ApiComponents.Domain;
-using ApiComponents.DTOs;
-using ApiComponents.Persistence.Context;
-using ApiComponents.Persistence.Repositories;
+﻿using ApiComponents.Application.Repositories;
+using ApiComponents.Application.DTOs;
+using ApiComponents.Infrastructure.Context;
 using MercadoPago.Client.Payment;
 using MercadoPago.Client.Preference;
 using MercadoPago.Config;
 using Microsoft.EntityFrameworkCore;
+using ApiComponents.Domain.Models;
 
 namespace ApiComponents.Services
 {

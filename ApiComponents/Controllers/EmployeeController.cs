@@ -1,11 +1,7 @@
-﻿using ApiComponents.DTOs;
-using ApiComponents.Models;
+﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Domain.Models;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace ApiComponents.Controllers
 {

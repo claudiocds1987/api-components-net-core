@@ -1,5 +1,5 @@
-﻿using ApiComponents.Models;
-using ApiComponents.Persistence.Context;
+﻿using ApiComponents.Domain.Models;
+using ApiComponents.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiComponents.Persistence.Seed

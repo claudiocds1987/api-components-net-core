@@ -1,4 +1,4 @@
-﻿using ApiComponents.Models;
+﻿using ApiComponents.Domain.Models;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
 

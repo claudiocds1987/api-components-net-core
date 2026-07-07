@@ -1,5 +1,5 @@
-﻿using ApiComponents.DTOs;
-using ApiComponents.Persistence.Repositories;
+﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Repositories;
 using ApiComponents.Services;
 using Microsoft.AspNetCore.Mvc;
 

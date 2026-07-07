@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ApiComponents.Services;
-using ApiComponents.DTOs;
+using ApiComponents.Application.DTOs;
 
 namespace ApiComponents.Controllers
 {

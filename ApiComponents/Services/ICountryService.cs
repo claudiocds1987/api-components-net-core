@@ -1,6 +1,4 @@
-﻿using ApiComponents.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using ApiComponents.Domain.Models;
 
 namespace ApiComponents.Services
 {

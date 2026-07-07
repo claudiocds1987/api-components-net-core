@@ -1,6 +1,5 @@
-﻿using ApiComponents.DTOs;
-using ApiComponents.Models;
-using ApiComponents.Services;
+﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Domain.Models;
 using MediatR;
 using ApiComponents.Features.Products.Commands.CreateProduct;
 using ApiComponents.Features.Products.Commands.UpdateProduct;

@@ -1,4 +1,4 @@
-﻿using ApiComponents.Models;
+﻿using ApiComponents.Domain.Models;
 
 namespace ApiComponents.Services
 {

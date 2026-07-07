@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ApiComponents.Models;
-using ApiComponents.Persistence.Context;
+using ApiComponents.Domain.Models;
+using ApiComponents.Infrastructure.Context;
 
 namespace ApiComponents.Controllers
 {

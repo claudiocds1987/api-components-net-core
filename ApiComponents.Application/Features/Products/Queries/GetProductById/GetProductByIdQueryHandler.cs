@@ -1,15 +1,16 @@
 using MediatR;
 using ApiComponents.Application.Repositories;
+using ApiComponents.Application.DTOs;
 
 namespace ApiComponents.Application.Features.Products.Queries.GetProductById;
 
-public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, ApiComponents.Application.DTOs.ProductResponseDto?>
+public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, ProductResponseDto?>
 {
     private readonly IProductRepository _repo;
 
     public GetProductByIdQueryHandler(IProductRepository repo) => _repo = repo;
 
-    public async Task<ApiComponents.Application.DTOs.ProductResponseDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ProductResponseDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
         return await _repo.GetProduct(request.Id, cancellationToken);
     }

@@ -1,10 +1,11 @@
-﻿using ApiComponents.DTOs;
-using ApiComponents.Models;
-using ApiComponents.Persistence.Repositories;
+using ApiComponents.Application.DTOs;
+using ApiComponents.Domain.Models;
+using ApiComponents.Application.Repositories;
 using AutoMapper;
 using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
+using ApiComponents.Application.Interfaces;
 
 namespace ApiComponents.Services;
 
@@ -283,10 +284,7 @@ public class ProductService(IProductRepository productRepo, IMapper mapper, IFil
         var (items, totalCount) = await productRepo.GetProductsAdminAsync(
             page, size, search, categoryId, brandId, minPrice, maxPrice, sortBy, order, isActive, cancellationToken);
 
-        // Mapeamos a ProductDto
-        var dtos = mapper.Map<List<ProductDto>>(items);
-
-        return CreatePagedResponse(dtos, totalCount, page, size);
+        return CreatePagedResponse(items, totalCount, page, size);
     }
 
     private static object CreatePagedResponse(System.Collections.IEnumerable items, int totalCount, int? page, int? size) => new
