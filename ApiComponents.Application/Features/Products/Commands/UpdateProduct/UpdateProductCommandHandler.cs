@@ -3,7 +3,7 @@ using MediatR;
 using ApiComponents.Application.DTOs;
 using ApiComponents.Application.Repositories;
 
-namespace ApiComponents.Features.Products.Commands.UpdateProduct;
+namespace ApiComponents.Application.Features.Products.Commands.UpdateProduct;
 
 public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand, ProductRequestDTo>
 {

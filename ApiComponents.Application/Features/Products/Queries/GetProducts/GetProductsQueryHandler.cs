@@ -1,34 +1,31 @@
 using MediatR;
-using ApiComponents.Application.Repositories;
 using AutoMapper;
+using ApiComponents.Application.Repositories;
+using ApiComponents.Application.DTOs;
 
-namespace ApiComponents.Application.Features.Products.Queries.GetProducts;
-
-public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
+namespace ApiComponents.Application.Features.Products.Queries.GetProducts
 {
-    private readonly IProductRepository _repo;
-    private readonly IMapper _mapper;
-
-    public GetProductsQueryHandler(IProductRepository repo, IMapper mapper)
+    public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
     {
-        _repo = repo;
-        _mapper = mapper;
-    }
+        private readonly IProductRepository _repo;
+        private readonly IMapper _mapper;
 
-    public async Task<object> Handle(GetProductsQuery request, CancellationToken cancellationToken)
-    {
-        if (request.ForAdmin.HasValue && request.ForAdmin.Value)
+        public GetProductsQueryHandler(IProductRepository repo, IMapper mapper)
         {
-            var (items, total) = await _repo.GetProductsAdminAsync(request.Page, request.Size, request.Search,
-                request.CategoryId, request.BrandId, request.MinPrice, request.MaxPrice, request.SortBy, request.Order, request.IsActive, cancellationToken);
-
-            return new { items, totalItems = total };
+            _repo = repo;
+            _mapper = mapper;
         }
 
-        var (itemsPublic, totalPublic) = await _repo.GetProductsAsync(request.Page, request.Size, request.Search,
-            request.CategoryId, request.BrandId, request.MinPrice, request.MaxPrice, request.SortBy, request.Order, request.IsActive, cancellationToken);
+        public async Task<object> Handle(GetProductsQuery request, CancellationToken cancellationToken)
+        {
+            var (items, total) = await _repo.GetProductsAsync(
+                request.Page, request.Size, request.Search,
+                request.CategoryId, request.BrandId, request.MinPrice,
+                request.MaxPrice, request.SortBy, request.Order,
+                request.IsActive, cancellationToken);
 
-        var dtosPublic = _mapper.Map<List<ApiComponents.Application.DTOs.ProductDto>>(itemsPublic);
-        return new { items = dtosPublic, totalItems = totalPublic };
+            var dtos = _mapper.Map<List<ProductDto>>(items);
+            return new { items = dtos, totalItems = total };
+        }
     }
 }
