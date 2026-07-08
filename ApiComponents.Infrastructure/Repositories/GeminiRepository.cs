@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using ApiComponents.Application.Repositories;
 using Microsoft.Extensions.Configuration;
 
-namespace ApiComponents.Persistence.Repositories
+namespace ApiComponents.Infrastructure.Repositories
 {
     public class GeminiRepository : IGeminiRepository
     {

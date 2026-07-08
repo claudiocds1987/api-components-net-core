@@ -1,5 +1,5 @@
 using ApiComponents.Infrastructure;
-using ApiComponents.Persistence.Seed;
+using ApiComponents.Infrastructure.Seed;
 using ApiComponents.Services;
 using ApiComponents.Infrastructure.Context;
 using ApiComponents.GraphQL;

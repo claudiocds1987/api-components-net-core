@@ -1,7 +1,7 @@
 ﻿using ApiComponents.Application.Repositories;
 using ApiComponents.Infrastructure.Context;
 using ApiComponents.Infrastructure.Repositories;
-using ApiComponents.Persistence.Repositories;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
