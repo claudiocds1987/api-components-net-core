@@ -88,12 +88,13 @@ builder.Services.AddInfrastructure(builder.Configuration);
 //builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 //builder.Services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
 // ---  INYECCIÓN DE DEPENDENCIAS SERVICIOS ---
+// IR BOORANDO LOS SERVICIOS DESDE EMPLOYEESERVICE HASTA PRODUCTEXTRAATTRIBUTESERVICE A MEDIDA QUE SE VAN HACIENDO LSO COMMADN Y QUERIES MEDIATOR MENO FILESERVICE Y AUTOMMAPER
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
-builder.Services.AddScoped<IProductService, ProductService>();
+//builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
@@ -110,7 +111,7 @@ builder.Services.AddAutoMapper(cfg =>
 // --- Mediator ---
 // Registrar MediatR para handlers ubicados en Application
 // Registrar handlers MediatR desde el ensamblado correcto (Features en este proyecto)
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApiComponents.Features.Products.Commands.CreateProduct.CreateProductCommandHandler).Assembly));
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApiComponents.Application.Features.Products.Commands.CreateProduct.CreateProductCommandHandler).Assembly));
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
 // Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.

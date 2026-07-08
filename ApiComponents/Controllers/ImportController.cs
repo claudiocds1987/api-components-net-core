@@ -1,9 +1,10 @@
-﻿using ApiComponents.Services;
+﻿using ApiComponents.Application.Features.MassiveImports.Command.ImportProductsFromCsv;
+using MediatR; // Necesario para ISender
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/massiveImport")]
-public class ImportController(IProductService productService) : ControllerBase
+public class ImportController(ISender sender) : ControllerBase // Inyectamos ISender
 {
     [HttpPost("products")]
     public async Task<IActionResult> ImportProducts(IFormFile file)
@@ -11,12 +12,12 @@ public class ImportController(IProductService productService) : ControllerBase
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "Seleccioná un archivo CSV válido." });
 
-        // Llamamos al proceso del servicio
-        var result = await productService.ProcessCsvAsync(file);
+        // Ya no conocemos al servicio, solo enviamos el comando al mediador
+        var command = new ImportProductsFromCsvCommand(file);
+        var result = await sender.Send(command);
 
         if (!result.Success)
         {
-            // Devolvemos 400 con la lista de errores para que Angular los muestre
             return BadRequest(result);
         }
 
