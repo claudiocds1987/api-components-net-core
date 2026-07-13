@@ -4,6 +4,7 @@ using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
 using ApiComponents.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace ApiComponents.Infrastructure.Repositories;
 
@@ -174,33 +175,26 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         // 5. Conteo Total (Importante hacerlo antes de la paginación)
         int totalCount = await query.CountAsync(cancellationToken);
 
-        // 6. Ordenamiento Dinámico corregido
-        if (sortBy?.ToLower() == "price")
+        // 6. Ordenamiento Dinámico
+        var validSortFields = new[] { "price", "title", "id", "discountPercentage", "sku", "stock", "isActive" };
+
+        if (!string.IsNullOrWhiteSpace(sortBy) && validSortFields.Contains(sortBy, StringComparer.OrdinalIgnoreCase))
         {
-            query = order?.ToLower() == "asc"
-                ? query.OrderBy(p => p.price)
-                : query.OrderByDescending(p => p.price);
+            // Buscamos el nombre correcto de la propiedad (por si el usuario manda "discountpercentage" y la clase es "discountPercentage")
+            var propName = typeof(Product).GetProperties()
+                .FirstOrDefault(p => p.Name.Equals(sortBy, StringComparison.OrdinalIgnoreCase))?.Name;
+
+            if (propName != null)
+            {
+                query = ApplyOrdering(query, propName, order ?? "desc");
+            }
         }
-        else if (sortBy?.ToLower() == "title")
-        {
-            query = order?.ToLower() == "asc"
-                ? query.OrderBy(p => p.title)
-                : query.OrderByDescending(p => p.title);
-        }
-        // Agregamos explícitamente el caso de ID
-        else if (sortBy?.ToLower() == "id")
-        {
-            query = order?.ToLower() == "asc"
-                ? query.OrderBy(p => p.id)
-                : query.OrderByDescending(p => p.id);
-        }
-        else // Por defecto (si sortBy viene nulo o es otra cosa)
+        else
         {
             query = query.OrderByDescending(p => p.id);
         }
 
         // 7. Paginación y ejecución de la consulta
-        // IMPORTANTE: Asegúrate de que el Skip/Take vaya al final
         var items = await query
             .Skip(((page ?? 1) - 1) * (size ?? 25))
             .Take(size ?? 25)
@@ -210,6 +204,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 title = p.title,
                 sku = p.sku,
                 price = p.price,
+                discountPercentage = p.discountPercentage,
                 stock = p.stock,
                 categoryId = p.categoryId,
                 brandId = p.brandId,
@@ -580,6 +575,20 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         });
 
         return resultDto;
+    }
+
+    private IOrderedQueryable<Product> ApplyOrdering(IQueryable<Product> query, string sortBy, string order)
+    {
+        var parameter = Expression.Parameter(typeof(Product), "p");
+        var property = Expression.Property(parameter, sortBy); // Esto busca la propiedad por su nombre exacto
+        var lambda = Expression.Lambda(property, parameter);
+
+        var methodName = order?.ToLower() == "asc" ? "OrderBy" : "OrderByDescending";
+        var method = typeof(Queryable).GetMethods()
+            .First(m => m.Name == methodName && m.GetParameters().Length == 2)
+            .MakeGenericMethod(typeof(Product), property.Type);
+
+        return (IOrderedQueryable<Product>)method.Invoke(null, new object[] { query, lambda })!;
     }
 
     // Helper wrapper to call file service without changing many small call sites
