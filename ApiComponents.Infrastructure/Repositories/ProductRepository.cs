@@ -577,6 +577,8 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         return resultDto;
     }
 
+    // Aplica ordenamiento dinámico a la consulta de productos,
+    // según el nombre de la propiedad (sortBy) y la dirección (asc/desc).
     private IOrderedQueryable<Product> ApplyOrdering(IQueryable<Product> query, string sortBy, string order)
     {
         var parameter = Expression.Parameter(typeof(Product), "p");
