@@ -92,7 +92,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 //builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+//builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
 //builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -190,6 +190,9 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// --- Manejo Global de Excepciones ---
+app.UseMiddleware<ApiComponents.Middlewares.GlobalExceptionMiddleware>();
 
 // --- 8. MIDDLEWARES (Orden Crítico) ---
 // UseCors: Permite (o deniega) que aplicaciones desde otros dominios (como mi app de Angular) consuman la API.
