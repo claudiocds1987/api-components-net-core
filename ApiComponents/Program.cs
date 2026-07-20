@@ -61,40 +61,12 @@ builder.Services.AddControllers()
 // Al pasarle 'builder.Configuration', el método tiene acceso al connection string
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// --- 4. CONFIGURACIÓN DE BASE DE DATOS ---
-//var connectionString = builder.Configuration.GetConnectionString("Connection");
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//    options.UseSqlServer(connectionString, sqlOptions =>
-//    {
-//        sqlOptions.EnableRetryOnFailure(
-//            maxRetryCount: 5,
-//            maxRetryDelay: TimeSpan.FromSeconds(10),
-//            errorNumbersToAdd: null
-//        );
-//    }));
-
 // --- 5. INYECCIÓN DE DEPENDENCIAS REPOSITORIOS ---
-// Registrar repositorios (algunos siguen en Persistence; ProductRepository está en Infrastructure)
-//builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-//builder.Services.AddScoped<ICountryRepository, CountryRepository>();
-//builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-//builder.Services.AddScoped<IUserRepository, UserRepository>();
-//builder.Services.AddScoped<IGeminiRepository, GeminiRepository>();
-// Correct registration: interface and implementation both from Persistence.Repositories
-//builder.Services.AddScoped<ApplicationRepos.IProductRepository, ApplicationRepos.ProductRepository>();
-//builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-//builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 
-//builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
-//builder.Services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
-// ---  INYECCIÓN DE DEPENDENCIAS SERVICIOS ---
 // IR BOORANDO LOS SERVICIOS DESDE EMPLOYEESERVICE HASTA PRODUCTEXTRAATTRIBUTESERVICE A MEDIDA QUE SE VAN HACIENDO LSO COMMADN Y QUERIES MEDIATOR MENO FILESERVICE Y AUTOMMAPER
-//builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
-//builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
-//builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
@@ -109,8 +81,11 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 // --- Mediator ---
-// Registrar MediatR para handlers ubicados en Application
-// Registrar handlers MediatR desde el ensamblado correcto (Features en este proyecto)
+// Lo que hace es decirle a MediatR: "Ve a buscar a la asamblea (Assembly) donde vive la clase CreateProductCommandHandler, escanea todos los archivos de ese proyecto, y registra
+// automáticamente todos los Handlers que encuentres".
+// Como todos mis Handlers (de Products, de Auth, de Employees, etc.) viven dentro del mismo proyecto/ensamblado (ApiComponents.Application),
+// con darle a MediatR una sola clase de referencia (ApiComponents.Application.Features.Products.Commands.CreateProduct.CreateProductCommandHandler) de este proyecto,
+// es suficiente para que encuentre y registre mágicamente al resto. No es necesario agregarlos uno por uno.
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApiComponents.Application.Features.Products.Commands.CreateProduct.CreateProductCommandHandler).Assembly));
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
