@@ -19,14 +19,15 @@ namespace ApiComponents.Infrastructure
             {
                 throw new InvalidOperationException("La cadena de conexión 'Connection' no está configurada.");
             }
-
+            // 1.Configura la conexión a la base de datos(SQL Server) y activa reintentos automáticos ante fallos de red
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(connectionString, sqlOptions =>
                 {
                     sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
                 }));
 
-
+            // 2. Le dice a .NET: "Cuando alguien pida una interfaz de repositorio, 
+            // entrégale su clase real correspondiente".
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IEmployeeRepository, EmployeeRepository>();
             services.AddScoped<ICountryRepository, CountryRepository>();
