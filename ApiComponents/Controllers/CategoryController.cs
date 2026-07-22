@@ -1,21 +1,25 @@
-﻿using ApiComponents.Domain.Models;
-using ApiComponents.Services;
+using ApiComponents.Domain.Models;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using ApiComponents.Application.Features.Categories.Queries;
+using ApiComponents.Application.Features.Categories.Commands;
+
+namespace ApiComponents.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class CategoryController(ICategoryService categoryService) : ControllerBase
+public class CategoryController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductCategory>>> GetCategories([FromQuery] bool? isActive = true)
     {
-        return Ok(await categoryService.GetAllCategoriesAsync(isActive));
+        return Ok(await sender.Send(new GetAllCategoriesQuery(isActive)));
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductCategory>> GetCategory(int id)
     {
-        var category = await categoryService.GetCategoryByIdAsync(id);
+        var category = await sender.Send(new GetCategoryByIdQuery(id));
         if (category == null) return NotFound($"La categoría con ID {id} no existe.");
 
         return Ok(category);
@@ -26,11 +30,21 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
     {
         try
         {
-            await categoryService.CreateCategoryAsync(category);
-            // Uso de CreatedAtAction para devolver 201 y la ubicación del recurso
-            return CreatedAtAction(nameof(GetCategory), new { id = category.id }, category);
+            var createdCategory = await sender.Send(new CreateCategoryCommand(category));
+            return CreatedAtAction(nameof(GetCategory), new { id = createdCategory.id }, createdCategory);
         }
         catch (ApplicationException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> UpdateCategory(ProductCategory category)
+    {
+        try
+        {
+            await sender.Send(new UpdateCategoryCommand(category));
+            return NoContent();
+        }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
@@ -39,7 +53,7 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
     {
         try
         {
-            await categoryService.DeleteCategoryAsync(id);
+            await sender.Send(new DeleteCategoryCommand(id));
             return NoContent();
         }
         catch (Exception ex)
