@@ -13,6 +13,8 @@ namespace ApiComponents.Application.Repositories
         // Opcional: Mantenemos la búsqueda por PreferenceId para el refuerzo del Frontend
         Task UpdateStatusByPreferenceIdAsync(string preferenceId, string status, CancellationToken cancellationToken = default);
 
+        Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken = default);
+
         Task SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

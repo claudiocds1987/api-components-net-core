@@ -1,53 +1,29 @@
-﻿using ApiComponents.Application.DTOs;
-using ApiComponents.Application.Repositories;
-using ApiComponents.Services;
+using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Features.MercadoPago.Commands.CreatePreference;
+using ApiComponents.Application.Features.MercadoPago.Commands.ProcessPaymentReturn;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiComponents.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // Esto mapea automáticamente a: api/MercadoPago
+    [Route("api/[controller]")]
     public class MercadoPagoController : ControllerBase
     {
-        private readonly IMercadoPagoService _mercadoPagoService;
-        private readonly IOrderRepository _orderRepository;
+        private readonly ISender _sender;
 
-        public MercadoPagoController(IMercadoPagoService mercadoPagoService, IOrderRepository orderRepository)
+        public MercadoPagoController(ISender sender)
         {
-            _mercadoPagoService = mercadoPagoService;
-            _orderRepository = orderRepository;
+            _sender = sender;
         }
-
-        // -----------------------------------------------------------------------------------------------------------------
-        // CreatePreference() Se invoca desde el FRONTEND cuando el usuario hace clic en "Comprar".
-        // El backend crea una preferencia en MercadoPago y devuelve el preferenceId.
-        // El usuario es redirigido al checkout de MercadoPago con ese ID.
-        // Esto ocurre inmediatamente al iniciar el flujo de pago.
-        // [FromBody] indica que el parámetro se obtiene desde el cuerpo del request.
-        // El JSON enviado por el frontend se convierte (mapea) automáticamente en un objeto CartDto.
-        // En objetos complejos funciona igual sin [FromBody], pero se recomienda por claridad.
-        // En tipos simples (string, int, etc.) es obligatorio si queremos que el valor venga del body.
-        // -----------------------------------------------------------------------------------------------------------------
 
         [HttpPost("create-preference")]
         public async Task<IActionResult> CreatePreference([FromBody] CartDto cart, CancellationToken cancellationToken)
         {
-            try
-            {
-                var preferenceId = await _mercadoPagoService.CreatePreferenceAsync(cart, cancellationToken);
-                if (string.IsNullOrEmpty(preferenceId))
-                {
-                    return BadRequest(new { message = "El servidor no retornó un ID de preferencia válido." });
-                }
-                return Ok(new { id = preferenceId });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
+            var preferenceId = await _sender.Send(new CreatePreferenceCommand(cart), cancellationToken);
+            return Ok(new { id = preferenceId });
         }
 
-        // [HttpPost("confirm-payment")] Se encarga de recibir la confirmación del pago desde el frontend y actualizar la base de datos.
         [HttpPost("confirm-payment")]
         public async Task<IActionResult> ConfirmPayment(
             [FromQuery] string preferenceId,
@@ -55,28 +31,11 @@ namespace ApiComponents.Controllers
             [FromQuery] string status,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                Console.WriteLine($"[FRONTEND] Confirmación Recibida: Preference={preferenceId}, Status={status}");
-
-                if (string.IsNullOrEmpty(preferenceId))
-                {
-                    return BadRequest(new { message = "Falta el preferenceId." });
-                }
-
-                // Si tu repositorio no busca por PreferenceId directamente, podemos usar el paymentId 
-                // o actualizar el estado si lográs vincularlo.
-                // Como resguardo, si llega como 'approved', sabemos que impactó.
-
-                return Ok(new { message = "Confirmación procesada en el servidor." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
+            // Opcional: Esto también se podría delegar a un Command si tuviera lógica de base de datos
+            Console.WriteLine($"[FRONTEND] Confirmación Recibida: Preference={preferenceId}, Status={status}");
+            return Ok(new { message = "Confirmación procesada en el servidor." });
         }
 
-        // ENDPOINT DE RETORNO PARA EL AUTO-RETURN DE MERCADO PAGO
         [HttpGet("payment-return")]
         public async Task<IActionResult> PaymentReturn(
              [FromQuery] string status,
@@ -84,37 +43,11 @@ namespace ApiComponents.Controllers
              [FromQuery] string external_reference,
              CancellationToken cancellationToken)
         {
-            try
-            {
-                Console.WriteLine($"[RETORNO MP] Recibido: Status={status}, OrderId={external_reference}");
-
-                // Si viene el external_reference (ID de la orden de SQL Server), impactamos directo
-                if (!string.IsNullOrEmpty(external_reference) && int.TryParse(external_reference, out int orderId))
-                {
-                    if (status?.ToLower() == "approved")
-                    {
-                        await _orderRepository.UpdateStatusByIdAsync(orderId, "Approved", cancellationToken);
-                        await _orderRepository.SaveChangesAsync(cancellationToken);
-                        Console.WriteLine($"[ÉXITO DB] Orden ID {orderId} pasada a 'Approved'.");
-                    }
-                }
-
-                // Redirección inteligente: Si no es localhost, te manda al Front de GitHub Pages
-                string frontendUrl = "http://localhost:5000";
-
-                if (!Request.Host.Host.Contains("localhost"))
-                {
-                    frontendUrl = "https://claudiocds1987.github.io/angular-ecommerce-v20";
-                }
-
-                return Redirect($"{frontendUrl}/#/payment-result?status={status}&preference_id={preference_id}&payment_id={external_reference}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[CRÍTICO RETORNO]: {ex.Message}");
-                return Redirect("http://localhost:5000/#/payment-result?status=failure");
-            }
+            var redirectUrl = await _sender.Send(
+                new ProcessPaymentReturnCommand(status, preference_id, external_reference, Request.Host.Host), 
+                cancellationToken);
+                
+            return Redirect(redirectUrl);
         }
     }
-
 }

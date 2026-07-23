@@ -65,7 +65,6 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // IR BOORANDO LOS SERVICIOS DESDE EMPLOYEESERVICE HASTA PRODUCTEXTRAATTRIBUTESERVICE A MEDIDA QUE SE VAN HACIENDO LSO COMMADN Y QUERIES MEDIATOR MENO FILESERVICE Y AUTOMMAPER
 builder.Services.AddScoped<ICountryService, CountryService>();
-builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
