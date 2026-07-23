@@ -69,5 +69,21 @@ namespace ApiComponents.Infrastructure.Repositories
         {
             await _context.SaveChangesAsync(cancellationToken);
         }
+
+        public async Task<List<Order>> GetExpiredPendingOrdersAsync(DateTime expirationTime, CancellationToken cancellationToken = default)
+        {
+            // Usamos Include(o => o.orderDetails) para traer la información de cuánto stock debemos devolver
+            return await _context.Orders
+                .Include(o => o.orderDetails)
+                .Where(o => o.status == "Pending" && o.createdAt < expirationTime)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<Order?> GetOrderByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            return await _context.Orders
+                .Include(o => o.orderDetails)
+                .FirstOrDefaultAsync(o => o.id == id, cancellationToken);
+        }
     }
 }

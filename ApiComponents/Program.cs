@@ -162,6 +162,12 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// Registra el servicio en segundo plano (Background Service) que se ejecuta automáticamente 
+// mientras la API está encendida. Su trabajo es correr periódicamente (por ejemplo, cada 5 minutos) 
+// para invocar al comando que limpia y cancela las órdenes vencidas, liberando el stock 
+// de las compras que los usuarios abandonaron.
+builder.Services.AddHostedService<ApiComponents.Services.ExpiredOrdersCleanupService>();
+
 var app = builder.Build();
 
 // --- Manejo Global de Excepciones ---
