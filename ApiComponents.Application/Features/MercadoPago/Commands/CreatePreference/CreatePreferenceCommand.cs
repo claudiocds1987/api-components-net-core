@@ -99,6 +99,9 @@ public class CreatePreferenceCommandHandler : IRequestHandler<CreatePreferenceCo
                 order.orderDetails.Add(detail);
                 totalAmount += (realPrice * item.quantity);
 
+                // Descontamos el stock
+                await _productRepository.UpdateProductStock(item.productId, item.quantity, cancellationToken);
+
                 preferenceItems.Add(new PreferenceItemRequest
                 {
                     Title = product.title,

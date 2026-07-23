@@ -577,6 +577,49 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         return resultDto;
     }
 
+    // Método para actualizar el stock de un producto, (Necesario para actualizar stock del producto/os cuando finaliza la orden de compra).
+    public async Task UpdateProductStock(int id, int quantityToReduce, CancellationToken cancellationToken = default)
+    {
+        var product = await db.Products.FindAsync(new object[] { id }, cancellationToken);
+
+        if (product == null)
+            throw new Exception($"Producto con ID {id} no encontrado.");
+
+        if (product.stock < quantityToReduce)
+            throw new Exception($"Stock insuficiente para el producto '{product.title}'. Stock actual: {product.stock}, Solicitado: {quantityToReduce}.");
+
+        product.stock -= quantityToReduce;
+
+        // Opcional: Si el stock llega a 0, podrías pasarlo a inactivo o "Out of Stock"
+        if (product.stock == 0)
+        {
+            product.availabilityStatus = "Out of Stock";
+        }
+
+        db.Products.Update(product);
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RestoreProductStock(int id, int quantityToRestore, CancellationToken cancellationToken = default)
+    {
+        var product = await db.Products.FindAsync(new object[] { id }, cancellationToken);
+
+        if (product != null)
+        {
+            product.stock += quantityToRestore;
+
+            // Si el estado estaba agotado, lo volvemos a poner disponible automáticamente
+            if (product.availabilityStatus == "Out of Stock" && product.stock > 0)
+            {
+                product.availabilityStatus = "In Stock";
+            }
+
+            db.Products.Update(product);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     // Aplica ordenamiento dinámico a la consulta de productos,
     // según el nombre de la propiedad (sortBy) y la dirección (asc/desc).
     private IOrderedQueryable<Product> ApplyOrdering(IQueryable<Product> query, string sortBy, string order)

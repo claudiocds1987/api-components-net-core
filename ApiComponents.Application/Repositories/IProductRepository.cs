@@ -36,4 +36,6 @@ public interface IProductRepository
     Task CreateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default);
     Task<ProductRequestDTo> UpdateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default);
     Task<ProductRequestDTo> UpdateProductStatus(int id, bool isActive, CancellationToken cancellationToken = default);
+    Task UpdateProductStock(int id, int quantityToReduce, CancellationToken cancellationToken = default);
+    Task RestoreProductStock(int id, int quantityToRestore, CancellationToken cancellationToken = default);
 }
