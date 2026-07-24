@@ -1,27 +1,28 @@
-﻿using ApiComponents.Domain.Models;
-using ApiComponents.Services;
+﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Features.Brands.Commands;
+using ApiComponents.Application.Features.Brands.Queries;
+using ApiComponents.Domain.Models;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiComponents.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BrandController(IBrandService brandService) : ControllerBase
+public class BrandController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductBrand>>> GetBrands([FromQuery] bool? isActive = true)
     {
-        var brands = await brandService.GetAllBrandsAsync(isActive);
+        var brands = await sender.Send(new GetAllBrandsQuery(isActive));
         return Ok(brands);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductBrand>> GetBrand(int id)
     {
-        var brand = await brandService.GetBrandByIdAsync(id);
+        var brand = await sender.Send(new GetBrandByIdQuery(id));
 
-        // Si el servicio devuelve null (porque pusimos el ProductBrand?), 
-        // respondemos con un 404 claro.
         if (brand == null)
         {
             return NotFound($"La marca con ID {id} no existe.");
@@ -31,24 +32,15 @@ public class BrandController(IBrandService brandService) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateBrand(ProductBrand brand)
+    public async Task<IActionResult> CreateBrand(BrandRequestDTo brand)
     {
         try
         {
-            await brandService.CreateBrandAsync(brand);
-
-            // Convención REST: Devolver 201 (Created) y la ruta para obtener el recurso.
+            await sender.Send(new CreateBrandCommand(brand));
             return CreatedAtAction(nameof(GetBrand), new { id = brand.id }, brand);
         }
-        catch (ApplicationException ex)
-        {
-            // Esto captura el error de "La marca ya existe" del Service
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
+        catch (ApplicationException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
     [HttpDelete("{id}")]
@@ -56,7 +48,7 @@ public class BrandController(IBrandService brandService) : ControllerBase
     {
         try
         {
-            await brandService.DeleteBrandAsync(id);
+            await sender.Send(new DeleteBrandCommand(id));
             return NoContent();
         }
         catch (Exception ex)
