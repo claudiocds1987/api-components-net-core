@@ -1,7 +1,6 @@
 ﻿using ApiComponents.Application.DTOs;
 using ApiComponents.Application.Features.Brands.Commands;
 using ApiComponents.Application.Features.Brands.Queries;
-using ApiComponents.Domain.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,48 +11,34 @@ namespace ApiComponents.Controllers;
 public class BrandController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductBrand>>> GetBrands([FromQuery] bool? isActive = true)
-    {
-        var brands = await sender.Send(new GetAllBrandsQuery(isActive));
-        return Ok(brands);
-    }
+    public async Task<IActionResult> GetBrands([FromQuery] bool? isActive = true)
+        => Ok(await sender.Send(new GetAllBrandsQuery(isActive)));
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductBrand>> GetBrand(int id)
+    public async Task<IActionResult> GetBrand(int id)
     {
         var brand = await sender.Send(new GetBrandByIdQuery(id));
-
-        if (brand == null)
-        {
-            return NotFound($"La marca con ID {id} no existe.");
-        }
-
-        return Ok(brand);
+        return brand is not null ? Ok(brand) : NotFound($"La marca con ID {id} no existe.");
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateBrand(BrandRequestDTo brand)
+    public async Task<IActionResult> CreateBrand([FromBody] BrandRequestDTo brand)
     {
-        try
-        {
-            await sender.Send(new CreateBrandCommand(brand));
-            return CreatedAtAction(nameof(GetBrand), new { id = brand.id }, brand);
-        }
-        catch (ApplicationException ex) { return BadRequest(ex.Message); }
-        catch (Exception ex) { return StatusCode(500, ex.Message); }
+        await sender.Send(new CreateBrandCommand(brand));
+        return Ok();
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> UpdateBrand([FromBody] BrandRequestDTo brand)
+    {
+        await sender.Send(new UpdateBrandCommand(brand));
+        return Ok();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBrand(int id)
     {
-        try
-        {
-            await sender.Send(new DeleteBrandCommand(id));
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        await sender.Send(new DeleteBrandCommand(id));
+        return NoContent();
     }
 }

@@ -1,14 +1,13 @@
-﻿using ApiComponents.Application.DTOs;
+﻿using ApiComponents.Domain.Models;
 
-namespace ApiComponents.Application.Repositories
+namespace ApiComponents.Application.Repositories;
+
+public interface IBrandRepository
 {
-    public interface IBrandRepository
-    {
-        Task<IEnumerable<BrandResponseDTo>> GetAllBrandsAsync(bool? isActive = true, CancellationToken cancellationToken = default);
-        Task<BrandResponseDTo?> GetBrandAsync(int id, CancellationToken cancellationToken = default);
-        Task CreateBrandAsync(BrandRequestDTo brand, CancellationToken cancellationToken = default);
-        Task UpdateBrandAsync(BrandRequestDTo brand, CancellationToken cancellationToken = default);
-        Task DeleteBrandAsync(int id, CancellationToken cancellationToken = default);
-        Task<bool> ExistBrandAsync(string name, CancellationToken cancellationToken = default);
-    }
+    Task<bool> ExistBrandAsync(string name, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ProductBrand>> GetAllBrandsAsync(bool? isActive = true, CancellationToken cancellationToken = default);
+    Task<ProductBrand?> GetBrandByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task CreateBrandAsync(ProductBrand brand, CancellationToken cancellationToken = default);
+    Task UpdateBrandAsync(ProductBrand brand, CancellationToken cancellationToken = default);
+    Task DeleteBrandAsync(int id, CancellationToken cancellationToken = default);
 }

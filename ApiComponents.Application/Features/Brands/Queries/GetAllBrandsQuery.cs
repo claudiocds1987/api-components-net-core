@@ -10,6 +10,13 @@ public class GetAllBrandsQueryHandler(IBrandRepository brandRepository) : IReque
 {
     public async Task<IEnumerable<BrandResponseDTo>> Handle(GetAllBrandsQuery request, CancellationToken cancellationToken)
     {
-        return await brandRepository.GetAllBrandsAsync(request.IsActive, cancellationToken);
+        var brandEntities = await brandRepository.GetAllBrandsAsync(request.IsActive, cancellationToken);
+
+        return brandEntities.Select(b => new BrandResponseDTo
+        {
+            id = b.id,
+            name = b.name,
+            isActive = b.isActive
+        });
     }
 }
