@@ -67,12 +67,15 @@ public class BrandRepository(AppDbContext context) : IBrandRepository
 
     public async Task DeleteBrandAsync(int id, CancellationToken cancellationToken = default)
     {
-        var b = await GetBrandAsync(id, cancellationToken);
-        if (b != null)
+        // Buscamos directamente la entidad en el DbSet
+        var brand = await context.ProductBrands.FindAsync(new object[] { id }, cancellationToken);
+
+        if (brand != null)
         {
-            // SOFT DELETE: Cambiamos el estado isActive a false en lugar de eliminar el registro de la base de datos
-            b.isActive = false;
-            context.Entry(b).State = EntityState.Modified;
+            // Aplicamos el soft delete sobre la entidad rastreada
+            brand.isActive = false;
+
+            // Guardamos los cambios
             await context.SaveChangesAsync(cancellationToken);
         }
     }
