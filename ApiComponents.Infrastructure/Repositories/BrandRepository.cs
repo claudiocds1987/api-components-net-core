@@ -1,4 +1,5 @@
-﻿using ApiComponents.Application.Repositories;
+﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
 using ApiComponents.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
@@ -7,10 +8,10 @@ namespace ApiComponents.Infrastructure.Repositories;
 
 public class BrandRepository(AppDbContext context) : IBrandRepository
 {
-    public async Task<bool> ExistBrand(string name)
-        => await context.ProductBrands.AnyAsync(b => b.name.ToLower() == name.ToLower());
+    public async Task<bool> ExistBrandAsync(string name, CancellationToken cancellationToken = default)
+        => await context.ProductBrands.AnyAsync(b => b.name.ToLower() == name.ToLower(), cancellationToken);
 
-    public async Task<IEnumerable<ProductBrand>> GetAllBrands(bool? isActive = true)
+    public async Task<IEnumerable<BrandResponseDTo>> GetAllBrandsAsync(bool? isActive = true, CancellationToken cancellationToken = default)
     {
         var query = context.ProductBrands.AsQueryable();
 
@@ -18,35 +19,61 @@ public class BrandRepository(AppDbContext context) : IBrandRepository
         if (isActive.HasValue)
             query = query.Where(b => b.isActive == isActive.Value);
 
-        return await query.ToListAsync();
+        return await query.Select(b => new BrandResponseDTo
+        {
+            id = b.id,
+            name = b.name,
+            isActive = b.isActive
+        }).ToListAsync(cancellationToken);
     }
 
 
 
-    public async Task<ProductBrand?> GetBrand(int id)
-        => await context.ProductBrands.FindAsync(id);
-
-    public async Task AddBrand(ProductBrand brand)
+    public async Task<BrandResponseDTo?> GetBrandAsync(int id, CancellationToken cancellationToken = default)
     {
-        await context.ProductBrands.AddAsync(brand);
-        await context.SaveChangesAsync();
+        var brand = await context.ProductBrands.FindAsync(new object[] { id }, cancellationToken);
+        if (brand == null) return null;
+        return new BrandResponseDTo
+        {
+            id = brand.id,
+            name = brand.name,
+            isActive = brand.isActive
+        };
     }
 
-    public async Task UpdateBrand(ProductBrand brand)
+    public async Task CreateBrandAsync(BrandRequestDTo brand, CancellationToken cancellationToken = default)
     {
-        context.Entry(brand).State = EntityState.Modified;
-        await context.SaveChangesAsync();
+        var productBrand = new ProductBrand
+        {
+            name = brand.name,
+            isActive = brand.isActive
+        };
+
+        await context.ProductBrands.AddAsync(productBrand, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task DeleteBrand(int id)
+    public async Task UpdateBrandAsync(BrandRequestDTo brand, CancellationToken cancellationToken = default)
     {
-        var b = await GetBrand(id);
+        var productBrand = await GetBrandAsync(brand.id, cancellationToken);
+        if (productBrand == null) throw new ApplicationException("La marca no existe.");
+
+        productBrand.name = brand.name;
+        productBrand.isActive = brand.isActive;
+
+        context.Entry(productBrand).State = EntityState.Modified;
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteBrandAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var b = await GetBrandAsync(id, cancellationToken);
         if (b != null)
         {
             // SOFT DELETE: Cambiamos el estado isActive a false en lugar de eliminar el registro de la base de datos
             b.isActive = false;
             context.Entry(b).State = EntityState.Modified;
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 }
