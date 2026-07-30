@@ -8,18 +8,18 @@ using MercadoPago.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-namespace ApiComponents.Application.Features.MercadoPago.Commands.CreatePreference;
+namespace ApiComponents.Application.Features.Orders.Commands.CheckoutOrder;
 
-public record CreatePreferenceCommand(CartDto Cart) : IRequest<string>;
+public record CheckoutOrderCommand(CartDto Cart) : IRequest<string>;
 
-public class CreatePreferenceCommandHandler : IRequestHandler<CreatePreferenceCommand, string>
+public class CheckoutOrderCommandHandler : IRequestHandler<CheckoutOrderCommand, string>
 {
     private readonly IConfiguration _configuration;
     private readonly IOrderRepository _orderRepository;
     private readonly IProductRepository _productRepository;
     private readonly IHostEnvironment _env;
 
-    public CreatePreferenceCommandHandler(
+    public CheckoutOrderCommandHandler(
         IConfiguration configuration, 
         IOrderRepository orderRepository, 
         IProductRepository productRepository, 
@@ -31,20 +31,10 @@ public class CreatePreferenceCommandHandler : IRequestHandler<CreatePreferenceCo
         _env = env;
     }
 
-    public async Task<string> Handle(CreatePreferenceCommand request, CancellationToken cancellationToken)
+    public async Task<string> Handle(CheckoutOrderCommand request, CancellationToken cancellationToken)
     {
-        var token = Environment.GetEnvironmentVariable("MercadoPago__AccessToken");
-        var baseUrl = Environment.GetEnvironmentVariable("MercadoPago__BaseUrl");
-
-        if (string.IsNullOrEmpty(token))
-        {
-            token = _configuration["MercadoPago:AccessToken"];
-        }
-
-        if (string.IsNullOrEmpty(baseUrl))
-        {
-            baseUrl = _configuration["MercadoPago:BaseUrl"];
-        }
+        var token = Environment.GetEnvironmentVariable("MercadoPago__AccessToken") ?? _configuration["MercadoPago:AccessToken"];
+        var baseUrl = Environment.GetEnvironmentVariable("MercadoPago__BaseUrl") ?? _configuration["MercadoPago:BaseUrl"];
 
         if (string.IsNullOrEmpty(token))
         {
@@ -54,8 +44,6 @@ public class CreatePreferenceCommandHandler : IRequestHandler<CreatePreferenceCo
         MercadoPagoConfig.AccessToken = token;
         var finalBaseUrl = baseUrl ?? "https://apicomponents.runasp.net";
 
-        // NOTA: Para respetar CQRS y Clean Architecture sin usar AppDbContext en la capa Application,
-        // _orderRepository.ExecuteInTransactionAsync debe ser implementado en el repositorio de infraestructura.
         return await _orderRepository.ExecuteInTransactionAsync(async () =>
         {
             var order = new Order
@@ -116,17 +104,17 @@ public class CreatePreferenceCommandHandler : IRequestHandler<CreatePreferenceCo
             await _orderRepository.CreateAsync(order, cancellationToken);
             await _orderRepository.SaveChangesAsync(cancellationToken);
 
-            var successUrl = "https://localhost:44364/api/MercadoPago/payment-return";
-            var failureUrl = "https://localhost:44364/api/MercadoPago/payment-return";
-            var pendingUrl = "https://localhost:44364/api/MercadoPago/payment-return";
+            var successUrl = "https://localhost:44364/api/orders/payment-return";
+            var failureUrl = "https://localhost:44364/api/orders/payment-return";
+            var pendingUrl = "https://localhost:44364/api/orders/payment-return";
             var autoReturnBehavior = "approved";
 
             if (_env.IsProduction())
             {
                 string dominioMonster = "https://apicomponents.runasp.net";
-                successUrl = $"{dominioMonster}/api/MercadoPago/payment-return";
-                failureUrl = $"{dominioMonster}/api/MercadoPago/payment-return";
-                pendingUrl = $"{dominioMonster}/api/MercadoPago/payment-return";
+                successUrl = $"{dominioMonster}/api/orders/payment-return";
+                failureUrl = $"{dominioMonster}/api/orders/payment-return";
+                pendingUrl = $"{dominioMonster}/api/orders/payment-return";
                 autoReturnBehavior = "approved";
             }
 
@@ -158,7 +146,7 @@ public class CreatePreferenceCommandHandler : IRequestHandler<CreatePreferenceCo
 
             if (_env.IsProduction() && !string.IsNullOrEmpty(finalBaseUrl) && !finalBaseUrl.Contains("localhost"))
             {
-                mpRequest.NotificationUrl = $"{finalBaseUrl.TrimEnd('/')}/api/MercadoPago/webhook";
+                mpRequest.NotificationUrl = $"{finalBaseUrl.TrimEnd('/')}/api/orders/webhook";
             }
 
             var preference = await client.CreateAsync(mpRequest, null, cancellationToken);
