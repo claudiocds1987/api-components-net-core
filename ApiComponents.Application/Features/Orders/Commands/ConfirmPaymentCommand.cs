@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace ApiComponents.Application.Features.Orders.Commands.ConfirmPayment;
+namespace ApiComponents.Application.Features.Orders.Commands;
 
 public record ConfirmPaymentCommand(string PreferenceId, string PaymentId, string Status) : IRequest<string>;
 

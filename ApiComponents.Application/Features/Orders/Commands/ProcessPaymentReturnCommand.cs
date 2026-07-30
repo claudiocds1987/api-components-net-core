@@ -1,8 +1,7 @@
 using ApiComponents.Application.Repositories;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 
-namespace ApiComponents.Application.Features.Orders.Commands.ProcessPaymentReturn;
+namespace ApiComponents.Application.Features.Orders.Commands;
 
 public record ProcessPaymentReturnCommand(string Status, string PreferenceId, string ExternalReference, string Host) : IRequest<string>;
 
