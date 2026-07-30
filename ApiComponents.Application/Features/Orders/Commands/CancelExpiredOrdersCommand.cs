@@ -1,7 +1,7 @@
 using ApiComponents.Application.Repositories;
 using MediatR;
 
-namespace ApiComponents.Application.Features.Orders.Commands.CancelExpiredOrders;
+namespace ApiComponents.Application.Features.Orders.Commands;
 
 public record CancelExpiredOrdersCommand(int ExpirationMinutes = 15) : IRequest<Unit>;
 

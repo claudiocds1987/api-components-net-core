@@ -1,4 +1,5 @@
-using ApiComponents.Application.Features.Orders.Commands.CancelExpiredOrders;
+
+using ApiComponents.Application.Features.Orders.Commands;
 using MediatR;
 
 namespace ApiComponents.Services;
@@ -27,10 +28,10 @@ public class ExpiredOrdersCleanupService : BackgroundService
                 var sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
                 _logger.LogInformation("Verificando órdenes pendientes expiradas...");
-                
+
                 // Buscar y cancelar órdenes con más de 15 minutos en estado Pending
                 await sender.Send(new CancelExpiredOrdersCommand(15), stoppingToken);
-                
+
                 _logger.LogInformation("Verificación de órdenes completada.");
             }
             catch (Exception ex)

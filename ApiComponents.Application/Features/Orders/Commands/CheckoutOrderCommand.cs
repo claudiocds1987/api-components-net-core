@@ -8,7 +8,7 @@ using MercadoPago.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-namespace ApiComponents.Application.Features.Orders.Commands.CheckoutOrder;
+namespace ApiComponents.Application.Features.Orders.Commands;
 
 public record CheckoutOrderCommand(CartDto Cart) : IRequest<string>;
 
