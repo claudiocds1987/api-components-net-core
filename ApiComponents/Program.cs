@@ -21,7 +21,6 @@ ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProt
 
 // --- 2. CONFIGURACIÓN DE CORS DINÁMICA ---
 var allowedOrigins = builder.Configuration["AllowedOrigins"];
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -32,18 +31,46 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            if (!string.IsNullOrEmpty(allowedOrigins))
-            {
-                // Separamos por coma por si algún día se agregan más URLs
-                var origins = allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                policy.WithOrigins(origins)
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials();
-            }
+            // Si está configurada en appsettings o variables de entorno del hosting, la usa.
+            // Si no, por defecto autorizamos explícitamente tu dominio de producción.
+            var origins = !string.IsNullOrEmpty(allowedOrigins)
+                ? allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                : new[] {
+                    "http://productos.runasp.net",
+                    "https://productos.runasp.net"
+                  };
+
+            policy.WithOrigins(origins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
         }
     });
 });
+//var allowedOrigins = builder.Configuration["AllowedOrigins"];
+
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAngular", policy =>
+//    {
+//        if (builder.Environment.IsDevelopment())
+//        {
+//            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+//        }
+//        else
+//        {
+//            if (!string.IsNullOrEmpty(allowedOrigins))
+//            {
+//                // Separamos por coma por si algún día se agregan más URLs
+//                var origins = allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries);
+//                policy.WithOrigins(origins)
+//                      .AllowAnyHeader()
+//                      .AllowAnyMethod()
+//                      .AllowCredentials();
+//            }
+//        }
+//    });
+//});
 
 // --- 3. CONFIGURACIÓN DE JSON ---
 builder.Services.AddControllers()
