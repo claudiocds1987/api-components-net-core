@@ -20,33 +20,17 @@ var builder = WebApplication.CreateBuilder(args);
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 
 // --- 2. CONFIGURACIÓN DE CORS DINÁMICA ---
-var allowedOrigins = builder.Configuration["AllowedOrigins"];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-        }
-        else
-        {
-            // Si está configurada en appsettings o variables de entorno del hosting, la usa.
-            // Si no, por defecto autorizamos explícitamente tu dominio de producción.
-            var origins = !string.IsNullOrEmpty(allowedOrigins)
-                ? allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                : new[] {
-                    "http://productos.runasp.net",
-                    "https://productos.runasp.net"
-                  };
-
-            policy.WithOrigins(origins)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        }
+        policy.SetIsOriginAllowed(_ => true) // Permite cualquier origen de forma dinámica y segura
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
+// --- 2. CONFIGURACIÓN DE CORS DINÁMICA ---
 //var allowedOrigins = builder.Configuration["AllowedOrigins"];
 
 //builder.Services.AddCors(options =>
