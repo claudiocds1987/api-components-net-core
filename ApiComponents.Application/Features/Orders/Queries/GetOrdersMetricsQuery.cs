@@ -23,7 +23,7 @@ public record OrderStatusDistributionDto(string Status, int Count);
 
 public record TopProductDto(string ProductName, int Quantity);
 
-public record RecentOrderDto(int Id, string CustomerName, string Destination, DateTime Date, decimal TotalAmount, string Status);
+public record RecentOrderDto(int Id, string CustomerName, string CustomerEmail, string Destination, DateTime Date, decimal TotalAmount, string Status);
 
 public class GetOrdersMetricsQueryHandler : IRequestHandler<GetOrdersMetricsQuery, DashboardDto>
 {
@@ -36,6 +36,12 @@ public class GetOrdersMetricsQueryHandler : IRequestHandler<GetOrdersMetricsQuer
         _productRepository = productRepository;
     }
 
+    // -----------------------------------------------------------------------------------------------------------------------
+    // Este Handle obtiene la info para mostrar en un dashboard frontend:
+    // Obtiene todos los pedidos y calcula métricas generales (total de pedidos, ingresos, ticket promedio),
+    // evolución de ventas por día, distribución de estados de pedidos, top 5 productos más vendidos,
+    // y los últimos 7 pedidos recientes ordenados por fecha de creación descendente (para mostrar en el dashboard frontend).
+    // -----------------------------------------------------------------------------------------------------------------------
     public async Task<DashboardDto> Handle(GetOrdersMetricsQuery request, CancellationToken cancellationToken)
     {
         var allOrders = await _orderRepository.GetAllOrdersAsync(cancellationToken);
@@ -73,13 +79,14 @@ public class GetOrdersMetricsQueryHandler : IRequestHandler<GetOrdersMetricsQuer
             string productName = product != null ? product.title : $"Producto #{tp.ProductId}";
             topProducts.Add(new TopProductDto(productName, tp.TotalQuantity));
         }
-
+        // Devuelve los últimos 7 pedidos, ordenados por fecha de creación descendente
         var recentOrders = allOrders
             .OrderByDescending(o => o.createdAt)
             .Take(7)
             .Select(o => new RecentOrderDto(
                 o.id,
                 o.customerName,
+                o.customerEmail,
                 o.shippingCity,
                 o.createdAt,
                 o.totalAmount,
