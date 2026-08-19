@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework> 
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>78a09959-1430-4c0f-861f-f35445660b8b</UserSecretsId>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\ApiComponents.Application\ApiComponents.Application.csproj" />
     <ProjectReference Include="..\ApiComponents.Infrastructure\ApiComponents.Infrastructure.csproj" />
@@ -15,8 +16,13 @@
     <PackageReference Include="AutoMapper" Version="16.1.1" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
-    <PackageReference Include="HotChocolate.AspNetCore" Version="15.1.12" />
-    <PackageReference Include="HotChocolate.Data.EntityFramework" Version="15.1.12" />
+    <PackageReference Include="HotChocolate.AspNetCore" Version="16.6.1" />
+    <PackageReference Include="HotChocolate.Data" Version="16.6.1" />
+    <PackageReference Include="HotChocolate.Data.EntityFramework" Version="16.6.1" />
+    <PackageReference Include="HotChocolate.Types" Version="16.6.1" />
+    <PackageReference Include="HotChocolate.Types.CursorPagination" Version="16.6.1" />
+    <PackageReference Include="HotChocolate.Types.OffsetPagination" Version="16.6.1" />
+
     <PackageReference Include="MediatR" Version="14.2.0" />
     <PackageReference Include="mercadopago-sdk" Version="2.11.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.28" />

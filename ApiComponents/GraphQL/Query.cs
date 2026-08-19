@@ -1,18 +1,14 @@
 ﻿using ApiComponents.Domain.Models;
 using ApiComponents.Infrastructure.Context;
-
-
 namespace ApiComponents.GraphQL;
 
 public class Query
 {
-    // El atributo [UsePaging] habilita la paginación automática (estilo Relay)
-    // [UseProjection] es la clave: hace que el SQL solo traiga las columnas que el Front pidió
-    // [UseFiltering] y [UseSorting] habilitan filtros y ordenamiento dinámico
-    [UsePaging(IncludeTotalCount = true, DefaultPageSize = 25)]
-    [UseProjection]
-    [UseFiltering]
-    [UseSorting]
+    // ✅ Usamos offset/limit en lugar de cursores
+    [UseOffsetPaging(IncludeTotalCount = true, DefaultPageSize = 25)]
+    [UseProjection] // SQL solo trae las columnas pedidas
+    [UseFiltering]  // habilita filtros dinámicos
+    [UseSorting]    // habilita ordenamiento dinámico
     public IQueryable<Product> GetProducts(AppDbContext context)
     {
         // Importante: Devolvemos IQueryable para que HotChocolate 
