@@ -13,4 +13,5 @@ public class ProductDto
     public string thumbnail { get; set; } = string.Empty;
     public string category { get; set; } = string.Empty;
     public List<ProductTagDto> tags { get; set; } = [];
+    public bool isActive { get; set; }
 }
