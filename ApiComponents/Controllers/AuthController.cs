@@ -1,6 +1,5 @@
-using ApiComponents.Application.Features.Auth.Commands.Login;
-using ApiComponents.Application.Features.Auth.Commands.Register;
-using ApiComponents.Application.Features.Auth.Queries.GetUserByUsername;
+using ApiComponents.Application.Features.Auth.Commands;
+using ApiComponents.Application.Features.Auth.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

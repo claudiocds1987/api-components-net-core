@@ -2,7 +2,7 @@
 using ApiComponents.Application.DTOs;
 using ApiComponents.Application.Repositories;
 
-namespace ApiComponents.Application.Features.Products.Queries.GetProductById;
+namespace ApiComponents.Application.Features.Products.Queries;
 
 public record GetProductByIdQuery(int Id) : IRequest<ProductResponseDto?>;
 

@@ -1,4 +1,4 @@
-﻿using ApiComponents.Application.Features.MassiveImports.Command.ImportProductsFromCsv;
+﻿using ApiComponents.Application.Features.MassiveImports.Command;
 using MediatR; // Necesario para ISender
 using Microsoft.AspNetCore.Mvc;
 

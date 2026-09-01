@@ -2,7 +2,7 @@ using ApiComponents.Application.DTOs;
 using MediatR;
 using ApiComponents.Application.Repositories;
 
-namespace ApiComponents.Application.Features.Auth.Queries.GetUserByUsername
+namespace ApiComponents.Application.Features.Auth.Queries
 {
     public class GetUserByUsernameQuery : IRequest<UserResponseDto>
     {
@@ -10,7 +10,7 @@ namespace ApiComponents.Application.Features.Auth.Queries.GetUserByUsername
     }
 }
 
-namespace ApiComponents.Application.Features.Auth.Queries.GetUserByUsername
+namespace ApiComponents.Application.Features.Auth.Queries
 {
     public class GetUserByUsernameQueryHandler : IRequestHandler<GetUserByUsernameQuery, UserResponseDto>
     {

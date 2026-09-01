@@ -2,7 +2,7 @@ using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
 using MediatR;
 
-namespace ApiComponents.Application.Features.Employees.Queries.GetAllEmployees;
+namespace ApiComponents.Application.Features.Employees.Queries;
 
 public record GetAllEmployeesQuery() : IRequest<IEnumerable<Employee>>;
 

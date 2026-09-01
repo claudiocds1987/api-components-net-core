@@ -1,7 +1,7 @@
 using ApiComponents.Application.Repositories;
 using MediatR;
 
-namespace ApiComponents.Application.Features.Employees.Commands.DeleteEmployee;
+namespace ApiComponents.Application.Features.Employees.Commands;
 
 public record DeleteEmployeeCommand(int Id) : IRequest;
 
