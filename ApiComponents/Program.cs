@@ -12,6 +12,7 @@ using System.Text;
 using ApiComponents.Application.Interfaces;
 using ApiComponents.Infrastructure.Services;
 using ApiComponents.Application.Mappings;
+using ApiComponents.Application.Features.Products.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,7 +95,7 @@ builder.Services.AddAutoMapper(cfg =>
 // Como todos mis Handlers (de Products, de Auth, de Employees, etc.) viven dentro del mismo proyecto/ensamblado (ApiComponents.Application),
 // con darle a MediatR una sola clase de referencia (ApiComponents.Application.Features.Products.Commands.CreateProduct.CreateProductCommandHandler) de este proyecto,
 // es suficiente para que encuentre y registre mágicamente al resto. No es necesario agregarlos uno por uno.
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApiComponents.Application.Features.Products.Commands.CreateProduct.CreateProductCommandHandler).Assembly));
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateProductCommandHandler).Assembly));
 
 // --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
 // Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.

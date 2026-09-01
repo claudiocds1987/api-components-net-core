@@ -1,12 +1,8 @@
 using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Features.Employees.Commands;
+using ApiComponents.Application.Features.Employees.Queries;
 using ApiComponents.Domain.Models;
-using ApiComponents.Application.Features.Employees.Queries.GetPagedEmployees;
-using ApiComponents.Application.Features.Employees.Queries.GetAllEmployees;
-using ApiComponents.Application.Features.Employees.Queries.GetEmployeeById;
-using ApiComponents.Application.Features.Employees.Commands.AddEmployee;
-using ApiComponents.Application.Features.Employees.Commands.UpdateEmployee;
-using ApiComponents.Application.Features.Employees.Commands.DeleteEmployee;
-using ApiComponents.Application.Features.Employees.Commands.AddEmployeeList;
+
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -72,7 +68,7 @@ namespace ApiComponents.Controllers
             }
 
             await sender.Send(new AddEmployeeListCommand(employees));
-            
+
             return Ok(new
             {
                 message = "Procesamiento por lotes completado con éxito.",

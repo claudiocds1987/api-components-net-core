@@ -2,7 +2,7 @@
 using ApiComponents.Application.DTOs;
 using ApiComponents.Application.Repositories;
 
-namespace ApiComponents.Application.Features.Products.Commands.CreateProduct;
+namespace ApiComponents.Application.Features.Products.Commands;
 
 public record CreateProductCommand(ProductRequestDTo Product, string Scheme, string Host) : IRequest<Unit>;
 

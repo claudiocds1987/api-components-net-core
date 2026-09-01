@@ -1,13 +1,10 @@
 ﻿using ApiComponents.Application.DTOs;
 using ApiComponents.Domain.Models;
 using MediatR;
-using ApiComponents.Application.Features.Products.Commands.CreateProduct;
-using ApiComponents.Application.Features.Products.Commands.UpdateProduct;
-using ApiComponents.Application.Features.Products.Commands.UpdateProductStatus;
-using ApiComponents.Application.Features.Products.Queries.GetProducts;
-using ApiComponents.Application.Features.Products.Queries.GetProductsAdmin;
-using ApiComponents.Application.Features.Products.Queries.GetProductById;
+
 using Microsoft.AspNetCore.Mvc;
+using ApiComponents.Application.Features.Products.Queries;
+using ApiComponents.Application.Features.Products.Commands;
 
 namespace ApiComponents.Controllers;
 

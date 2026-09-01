@@ -2,7 +2,7 @@ using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
 using MediatR;
 
-namespace ApiComponents.Application.Features.Employees.Commands.UpdateEmployee;
+namespace ApiComponents.Application.Features.Employees.Commands;
 
 public record UpdateEmployeeCommand(int Id, Employee Employee) : IRequest;
 

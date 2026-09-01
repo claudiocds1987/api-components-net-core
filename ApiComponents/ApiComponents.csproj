@@ -8,6 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DTOs\**" />
+    <Compile Remove="Mappings\**" />
+    <Content Remove="DTOs\**" />
+    <Content Remove="Mappings\**" />
+    <EmbeddedResource Remove="DTOs\**" />
+    <EmbeddedResource Remove="Mappings\**" />
+    <None Remove="DTOs\**" />
+    <None Remove="Mappings\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ApiComponents.Application\ApiComponents.Application.csproj" />
     <ProjectReference Include="..\ApiComponents.Infrastructure\ApiComponents.Infrastructure.csproj" />
   </ItemGroup>
@@ -41,11 +52,6 @@
     <Content Update="web.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="Mappings\" />
   </ItemGroup>
 
 </Project>

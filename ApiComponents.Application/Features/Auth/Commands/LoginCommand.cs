@@ -8,7 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ApiComponents.Application.Features.Auth.Commands.Login
+namespace ApiComponents.Application.Features.Auth.Commands
 {
     public class LoginCommand : IRequest<UserResponseDto>
     {
@@ -17,7 +17,7 @@ namespace ApiComponents.Application.Features.Auth.Commands.Login
     }
 }
 
-namespace ApiComponents.Application.Features.Auth.Commands.Login
+namespace ApiComponents.Application.Features.Auth.Commands
 {
     public class LoginCommandHandler : IRequestHandler<LoginCommand, UserResponseDto>
     {
@@ -33,7 +33,7 @@ namespace ApiComponents.Application.Features.Auth.Commands.Login
         public async Task<UserResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
             var user = await _repository.GetByUsername(request.username);
-            
+
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.password, user.passwordHash))
             {
                 throw new UnauthorizedAccessException("Usuario o contraseÃ±a incorrectos.");

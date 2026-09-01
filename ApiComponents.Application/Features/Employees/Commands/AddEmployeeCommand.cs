@@ -2,7 +2,7 @@ using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
 using MediatR;
 
-namespace ApiComponents.Application.Features.Employees.Commands.AddEmployee;
+namespace ApiComponents.Application.Features.Employees.Commands;
 
 public record AddEmployeeCommand(Employee Employee) : IRequest;
 

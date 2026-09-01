@@ -8,7 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ApiComponents.Application.Features.Auth.Commands.Register
+namespace ApiComponents.Application.Features.Auth.Commands
 {
     public class RegisterCommand : IRequest<UserResponseDto>
     {
@@ -21,7 +21,7 @@ namespace ApiComponents.Application.Features.Auth.Commands.Register
     }
 }
 
-namespace ApiComponents.Application.Features.Auth.Commands.Register
+namespace ApiComponents.Application.Features.Auth.Commands
 {
     public class RegisterCommandHandler : IRequestHandler<RegisterCommand, UserResponseDto>
     {

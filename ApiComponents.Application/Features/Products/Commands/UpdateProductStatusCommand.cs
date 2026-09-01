@@ -2,7 +2,7 @@
 using MediatR;
 using ApiComponents.Application.Repositories;
 
-namespace ApiComponents.Application.Features.Products.Commands.UpdateProductStatus;
+namespace ApiComponents.Application.Features.Products.Commands;
 
 public record UpdateProductStatusCommand(int Id, bool IsActive) : IRequest<ProductRequestDTo>;
 

@@ -3,7 +3,7 @@ using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
 using MediatR;
 
-namespace ApiComponents.Application.Features.Employees.Queries.GetPagedEmployees;
+namespace ApiComponents.Application.Features.Employees.Queries;
 
 public record GetPagedEmployeesQuery(EmployeeQueryParams QueryParams) : IRequest<PaginatedList<Employee>>;
 
