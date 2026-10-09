@@ -38,7 +38,7 @@ namespace ApiComponents.Application.Features.Auth.Commands
         {
             if (await _repository.UserExists(request.username, request.email))
             {
-                throw new InvalidOperationException("El usuario o el correo ya estÃ¡n registrados.");
+                throw new InvalidOperationException("El usuario o el correo ya están registrados.");
             }
 
             var user = new User
