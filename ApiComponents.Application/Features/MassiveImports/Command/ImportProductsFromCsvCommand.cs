@@ -64,7 +64,7 @@ public class ImportProductsFromCsvCommandHandler : IRequestHandler<ImportProduct
             if (csv.HeaderRecord == null || csv.HeaderRecord.Length == 0 || !csv.HeaderRecord[0].Contains("title"))
             {
                 result.Success = false;
-                result.Message = "Formato invÃ¡lido. El archivo estÃ¡ vacÃ­o o no contiene la columna 'title'.";
+                result.Message = "Formato inválido. El archivo esta vacío o no contiene la columna 'title'.";
                 return result;
             }
 
@@ -91,7 +91,7 @@ public class ImportProductsFromCsvCommandHandler : IRequestHandler<ImportProduct
 
                     if (!int.TryParse(catField, out int currentCatId))
                     {
-                        result.Errors.Add($"Fila {rowNumber}: El categoryId '{catField}' no es un nÃºmero vÃ¡lido.");
+                        result.Errors.Add($"Fila {rowNumber}: El categoryId '{catField}' no es un número válido.");
                         rowNumber++; continue;
                     }
 
@@ -106,7 +106,7 @@ public class ImportProductsFromCsvCommandHandler : IRequestHandler<ImportProduct
                     }
                     else if (currentCatId != detectedCategoryId)
                     {
-                        result.Errors.Add($"Fila {rowNumber}: CategorÃ­a inconsistente. El archivo es de '{detectedCatName}' ({detectedCategoryId}), pero esta fila indica la categoria '{currentCatId}'.");
+                        result.Errors.Add($"Fila {rowNumber}: Categoría inconsistente. El archivo es de '{detectedCatName}' ({detectedCategoryId}), pero esta fila indica la categoría '{currentCatId}'.");
                         rowNumber++; continue;
                     }
 
@@ -135,15 +135,15 @@ public class ImportProductsFromCsvCommandHandler : IRequestHandler<ImportProduct
         catch (Exception ex)
         {
             result.Success = false;
-            result.Message = $"Error crÃ­tico: {ex.Message}";
+            result.Message = $"Error crítico: {ex.Message}";
             return result;
         }
 
-        // FinalizaciÃ³n del proceso
+        // Finalización del proceso
         if (result.Errors.Count > 0)
         {
             result.Success = false;
-            result.Message = "Se encontraron errores. No se guardÃ³ nada.";
+            result.Message = "Se encontraron errores. No se guardó nada.";
             return result;
         }
 
@@ -152,7 +152,7 @@ public class ImportProductsFromCsvCommandHandler : IRequestHandler<ImportProduct
             await _productRepo.AddProductsList(productsToSave, cancellationToken);
             result.Success = true;
             result.Count = productsToSave.Count;
-            result.Message = "ImportaciÃ³n exitosa.";
+            result.Message = "Importación exitosa.";
         }
 
         return result;
@@ -226,7 +226,7 @@ public class ImportProductsFromCsvCommandHandler : IRequestHandler<ImportProduct
                 case "number":
                     if (!double.TryParse(rawValue, out _))
                     {
-                        result.Errors.Add($"Fila {rowNumber}: '{header}' no es nÃºmero.");
+                        result.Errors.Add($"Fila {rowNumber}: '{header}' no es número.");
                         isValid = false;
                     }
                     break;

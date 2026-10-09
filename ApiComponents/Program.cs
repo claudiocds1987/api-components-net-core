@@ -31,31 +31,6 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
-// --- 2. CONFIGURACIÓN DE CORS DINÁMICA ---
-//var allowedOrigins = builder.Configuration["AllowedOrigins"];
-
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAngular", policy =>
-//    {
-//        if (builder.Environment.IsDevelopment())
-//        {
-//            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-//        }
-//        else
-//        {
-//            if (!string.IsNullOrEmpty(allowedOrigins))
-//            {
-//                // Separamos por coma por si algún día se agregan más URLs
-//                var origins = allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries);
-//                policy.WithOrigins(origins)
-//                      .AllowAnyHeader()
-//                      .AllowAnyMethod()
-//                      .AllowCredentials();
-//            }
-//        }
-//    });
-//});
 
 // --- 3. CONFIGURACIÓN DE JSON ---
 builder.Services.AddControllers()

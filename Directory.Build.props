@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Interpreta los .cs como UTF-8 aunque no tengan BOM (evita romper ñ y acentos en Windows). -->
+    <CodePage>65001</CodePage>
+  </PropertyGroup>
+</Project>

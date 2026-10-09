@@ -36,7 +36,7 @@ namespace ApiComponents.Application.Features.Auth.Commands
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.password, user.passwordHash))
             {
-                throw new UnauthorizedAccessException("Usuario o contraseÃ±a incorrectos.");
+                throw new UnauthorizedAccessException("Usuario o contraseña incorrectos.");
             }
 
             return new UserResponseDto
