@@ -54,20 +54,20 @@ public class QueryCatalogQueryHandler(
             discountPercentage = (double)p.discountPercentage,
             rating = (double)p.rating,
             stock = p.stock,
-            category = p.category?.name ?? "General",
+            categoryId = p.categoryId,
             brand = p.brand?.name ?? "N/A",
             thumbnail = p.thumbnail,
             tags = p.tags != null ? p.tags.Select(t => new ProductTagDto { id = t.id ?? 0, tagName = t.tagName }).ToList() : []
         }).ToList();
 
         // 2. Armamos un catálogo resumido para Gemini (sin description larga → ahorra tokens)
-        var catalogSummary = allProducts.Select(p => new
+        var catalogSummary = dbResult.Items.Select(p => new
         {
             p.id,
             p.title,
-            p.brand,
-            p.category,
-            p.tags
+            brand = p.brand?.name ?? "N/A",
+            category = p.category?.name ?? "General",
+            tags = p.tags != null ? p.tags.Select(t => new ProductTagDto { id = t.id ?? 0, tagName = t.tagName }).ToList() : []
         });
 
         var catalogJson = JsonSerializer.Serialize(catalogSummary);
@@ -397,8 +397,7 @@ public class QueryCatalogQueryHandler(
         {
             var originalHay = ((p.title ?? string.Empty) + " " +
                                (p.brand ?? string.Empty) + " " +
-                               (p.category ?? string.Empty) + " " +
-                               string.Join(" ", p.tags ?? new List<ProductTagDto>())).ToLowerInvariant();
+                               string.Join(" ", p.tags != null ? p.tags.Select(t => t.tagName) : Enumerable.Empty<string>())).ToLowerInvariant();
 
             var normalizedHay = originalHay.Replace("-", " ");
             var completeHay = originalHay + " " + normalizedHay;
