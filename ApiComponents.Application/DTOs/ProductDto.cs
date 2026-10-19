@@ -11,7 +11,7 @@ public class ProductDto
     public double rating { get; set; }
     public string brand { get; set; } = string.Empty;
     public string thumbnail { get; set; } = string.Empty;
-    public string category { get; set; } = string.Empty;
+    public int categoryId { get; set; }
     public List<ProductTagDto> tags { get; set; } = [];
     public bool isActive { get; set; }
 }
