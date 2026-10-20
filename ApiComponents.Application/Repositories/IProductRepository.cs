@@ -38,4 +38,5 @@ public interface IProductRepository
     Task<ProductRequestDTo> UpdateProductStatus(int id, bool isActive, CancellationToken cancellationToken = default);
     Task UpdateProductStock(int id, int quantityToReduce, CancellationToken cancellationToken = default);
     Task RestoreProductStock(int id, int quantityToRestore, CancellationToken cancellationToken = default);
+    Task<IEnumerable<TotalProductsByCategoryDto>> GetTotalProductsByCategoryAsync(bool? isActive = true, CancellationToken cancellationToken = default);
 }
