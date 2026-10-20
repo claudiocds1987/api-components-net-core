@@ -1,4 +1,4 @@
-﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Application.DTOs;
 using ApiComponents.Domain.Models;
 using MediatR;
 
@@ -67,5 +67,14 @@ public class ProductController(ISender sender) : ControllerBase
     {
         var updatedProduct = await sender.Send(new UpdateProductStatusCommand(id, false));
         return Ok(new { message = "Producto dado de baja correctamente", data = updatedProduct });
+    }
+
+    // Endpoint para obtener la cantidad de productos por categoría, opcionalmente filtrado por estado activo
+    // Usado en componente products-filter de Angular para mostrar la cantidad de productos por categoría en el filtro
+    [HttpGet("total-by-category")]
+    public async Task<ActionResult<IEnumerable<TotalProductsByCategoryDto>>> GetTotalProductsByCategory([FromQuery] bool? isActive = true)
+    {
+        var counts = await sender.Send(new GetTotalProductsByCategoryQuery(isActive));
+        return Ok(counts);
     }
 }
