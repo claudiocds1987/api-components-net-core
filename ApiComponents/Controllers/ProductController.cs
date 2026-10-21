@@ -77,4 +77,13 @@ public class ProductController(ISender sender) : ControllerBase
         var counts = await sender.Send(new GetTotalProductsByCategoryQuery(isActive));
         return Ok(counts);
     }
+
+    // Endpoint para obtener la cantidad de productos por marca, opcionalmente filtrado por estado activo
+    // Usado en componente products-filter de Angular para mostrar la cantidad de productos por marca en el filtro
+    [HttpGet("total-by-brand")]
+    public async Task<ActionResult<IEnumerable<TotalProductsByBrandDto>>> GetTotalProductsByBrand([FromQuery] bool? isActive = true)
+    {
+        var counts = await sender.Send(new GetTotalProductsByBrandQuery(isActive));
+        return Ok(counts);
+    }
 }
