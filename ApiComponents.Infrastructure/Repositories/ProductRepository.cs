@@ -662,4 +662,25 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             .OrderBy(x => x.CategoryId)
             .ToListAsync(cancellationToken);
     }
+
+    // ==============================================================================================================
+    // MÉTODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR MARCA (USADO EN COMPONENTE product-filter DE ANGULAR)
+    // ==============================================================================================================
+    public async Task<IEnumerable<TotalProductsByBrandDto>> GetTotalProductsByBrandAsync(bool? isActive = true, CancellationToken cancellationToken = default)
+    {
+        var query = db.Products.AsNoTracking().AsQueryable();
+
+        if (isActive.HasValue)
+            query = query.Where(p => p.isActive == isActive.Value);
+
+        return await query
+            .GroupBy(p => p.brandId)
+            .Select(g => new TotalProductsByBrandDto
+            {
+                BrandId = g.Key,
+                TotalProducts = g.Count()
+            })
+            .OrderBy(x => x.BrandId)
+            .ToListAsync(cancellationToken);
+    }
 }
