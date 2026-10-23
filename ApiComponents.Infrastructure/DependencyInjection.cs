@@ -24,6 +24,7 @@ namespace ApiComponents.Infrastructure
                 options.UseSqlServer(connectionString, sqlOptions =>
                 {
                     sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
+                    sqlOptions.UseCompatibilityLevel(120);
                 }));
 
             // 2. Le dice a .NET: "Cuando alguien pida una interfaz de repositorio, 

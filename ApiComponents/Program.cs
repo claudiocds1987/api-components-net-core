@@ -20,73 +20,73 @@ var builder = WebApplication.CreateBuilder(args);
 // Obligatorio para que MonsterASP pueda hablar con los servidores de Mercado Pago
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 
-// --- 2. CONFIGURACIÓN DE CORS DINÁMICA ---
+// --- 2. CONFIGURACIÃ“N DE CORS DINÃMICA ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true) // Permite cualquier origen de forma dinámica y segura
+        policy.SetIsOriginAllowed(_ => true) // Permite cualquier origen de forma dinÃ¡mica y segura
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
 
-// --- 3. CONFIGURACIÓN DE JSON ---
+// --- 3. CONFIGURACIÃ“N DE JSON ---
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         // 1. Evita el error de ciclos infinitos al serializar relaciones
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 
-        // 2. CAMBIO CLAVE: Forzamos CamelCase (minúsculas) para que coincida con Angular
-        // Esto convertirá Items -> items, TotalItems -> totalItems automáticamente.
+        // 2. CAMBIO CLAVE: Forzamos CamelCase (minÃºsculas) para que coincida con Angular
+        // Esto convertirÃ¡ Items -> items, TotalItems -> totalItems automÃ¡ticamente.
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// --- 4. CONFIGURACIÓN DE BASE DE DATOS Y REPOSITORIOS ---
-// Al pasarle 'builder.Configuration', el método tiene acceso al connection string
+// --- 4. CONFIGURACIÃ“N DE BASE DE DATOS Y REPOSITORIOS ---
+// Al pasarle 'builder.Configuration', el mÃ©todo tiene acceso al connection string
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// --- 5. INYECCIÓN DE DEPENDENCIAS REPOSITORIOS ---
+// --- 5. INYECCIÃ“N DE DEPENDENCIAS REPOSITORIOS ---
 
 // IR BOORANDO LOS SERVICIOS DESDE EMPLOYEESERVICE HASTA PRODUCTEXTRAATTRIBUTESERVICE A MEDIDA QUE SE VAN HACIENDO LSO COMMADN Y QUERIES MEDIATOR MENO FILESERVICE Y AUTOMMAPER
 builder.Services.AddScoped<ICountryService, CountryService>();
 //builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IProductExtraAttributeService, ProductExtraAttributeService>();
-// Servicio para procesar imágenes/archivos (necesario para repositorios que lo inyectan)
+// Servicio para procesar imÃ¡genes/archivos (necesario para repositorios que lo inyectan)
 builder.Services.AddScoped<IFileService, FileService>();
 // Registro actualizado para AutoMapper
 builder.Services.AddAutoMapper(cfg =>
 {
-    // Localiza el ensamblado de MappingProfile y registra todos los perfiles allí
+    // Localiza el ensamblado de MappingProfile y registra todos los perfiles allÃ­
     cfg.AddMaps(typeof(MappingProductExtraAttributesProfile).Assembly);
 });
 
 // --- Mediator ---
 // Lo que hace es decirle a MediatR: "Ve a buscar a la asamblea (Assembly) donde vive la clase CreateProductCommandHandler, escanea todos los archivos de ese proyecto, y registra
-// automáticamente todos los Handlers que encuentres".
+// automÃ¡ticamente todos los Handlers que encuentres".
 // Como todos mis Handlers (de Products, de Auth, de Employees, etc.) viven dentro del mismo proyecto/ensamblado (ApiComponents.Application),
 // con darle a MediatR una sola clase de referencia (ApiComponents.Application.Features.Products.Commands.CreateProduct.CreateProductCommandHandler) de este proyecto,
-// es suficiente para que encuentre y registre mágicamente al resto. No es necesario agregarlos uno por uno.
+// es suficiente para que encuentre y registre mÃ¡gicamente al resto. No es necesario agregarlos uno por uno.
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateProductCommandHandler).Assembly));
 
-// --- CONFIGURACIÓN DE GRAPHQL (HotChocolate) ---
-// Esto habilita el motor de consultas dinámicas sin afectar a los controladores REST.
-// HotChocolate v15 inyectará el DbContext automáticamente porque ya está registrado en builder.Services.
+// --- CONFIGURACIÃ“N DE GRAPHQL (HotChocolate) ---
+// Esto habilita el motor de consultas dinÃ¡micas sin afectar a los controladores REST.
+// HotChocolate v15 inyectarÃ¡ el DbContext automÃ¡ticamente porque ya estÃ¡ registrado en builder.Services.
 builder.Services
     .AddHttpClient()
     .AddGraphQLServer()
     .AddQueryType<Query>()           // Registra la clase donde definimos las consultas
     .AddProjections()                // Permite que el SQL solo traiga las columnas pedidas desde el Front
     .AddFiltering()                  // Habilita filtros avanzados (where)
-    .AddSorting()                   // Habilita ordenamiento dinámico (orderby)
+    .AddSorting()                   // Habilita ordenamiento dinÃ¡mico (orderby)
     .ModifyCostOptions(o => o.MaxFieldCost = 10000);
 
 // --- 6. CONFIGURAR JWT ---
 var jwtKey = builder.Configuration["Jwt:Key"];
-// Validación de seguridad para evitar el crash 500.30 si falta la key
+// ValidaciÃ³n de seguridad para evitar el crash 500.30 si falta la key
 if (string.IsNullOrEmpty(jwtKey))
 {
     throw new Exception("JWT Key is missing in configuration!");
@@ -119,17 +119,17 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API de Componentes - .NET 8"
     });
 
-    // CONFIGURACIÓN PARA JWT EN SWAGGER
+    // CONFIGURACIÃ“N PARA JWT EN SWAGGER
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         // Al usar SecuritySchemeType.Http y Scheme = "bearer", 
-        // Swagger añade automáticamente la palabra "Bearer "
+        // Swagger aÃ±ade automÃ¡ticamente la palabra "Bearer "
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Pegue directamente su token JWT aquí."
+        Description = "Pegue directamente su token JWT aquÃ­."
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -148,9 +148,9 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Registra el servicio en segundo plano (Background Service) que se ejecuta automáticamente 
-// mientras la API está encendida. Su trabajo es correr periódicamente (por ejemplo, cada 5 minutos) 
-// para invocar al comando que limpia y cancela las órdenes vencidas, liberando el stock 
+// Registra el servicio en segundo plano (Background Service) que se ejecuta automÃ¡ticamente 
+// mientras la API estÃ¡ encendida. Su trabajo es correr periÃ³dicamente (por ejemplo, cada 5 minutos) 
+// para invocar al comando que limpia y cancela las Ã³rdenes vencidas, liberando el stock 
 // de las compras que los usuarios abandonaron.
 builder.Services.AddHostedService<ApiComponents.Services.ExpiredOrdersCleanupService>();
 
@@ -159,31 +159,31 @@ var app = builder.Build();
 // --- Manejo Global de Excepciones ---
 app.UseMiddleware<ApiComponents.Middlewares.GlobalExceptionMiddleware>();
 
-// --- 8. MIDDLEWARES (Orden Crítico) ---
+// --- 8. MIDDLEWARES (Orden CrÃ­tico) ---
 // UseCors: Permite (o deniega) que aplicaciones desde otros dominios (como mi app de Angular) consuman la API.
 app.UseCors("AllowAngular");
 // app.UseStaticFiles(): Permite leer la carpeta en donde estan las imagenes wwwroot/uploads
 app.UseStaticFiles();
-// UseSwagger(); genera el archivo JSON con la definición. 
+// UseSwagger(); genera el archivo JSON con la definiciÃ³n. 
 app.UseSwagger();
-// UseSwaggerUI monta la interfaz gráfica para probar los endpoints.
+// UseSwaggerUI monta la interfaz grÃ¡fica para probar los endpoints.
 app.UseSwaggerUI(c =>
 {
     // Usamos "./swagger/v1/swagger.json" para forzar que busque en la carpeta actual
     c.SwaggerEndpoint("./swagger/v1/swagger.json", "ApiComponents v1");
     c.RoutePrefix = string.Empty;
 });
-// UseHttpsRedirection: Fuerza a que cualquier petición HTTP se pase a HTTPS
+// UseHttpsRedirection: Fuerza a que cualquier peticiÃ³n HTTP se pase a HTTPS
 app.UseHttpsRedirection();
-// UseRouting: Este es el "GPS". Analiza la URL y decide a qué controlador pertenece la petición. Antes de CORS y de la Autorización para que el sistema sepa qué reglas aplicar a esa ruta específica.
+// UseRouting: Este es el "GPS". Analiza la URL y decide a quÃ© controlador pertenece la peticiÃ³n. Antes de CORS y de la AutorizaciÃ³n para que el sistema sepa quÃ© reglas aplicar a esa ruta especÃ­fica.
 app.UseRouting();
-// UseAuthentication: "¿Quién eres?". Verifica si traes un token válido o una cookie.
+// UseAuthentication: "Â¿QuiÃ©n eres?". Verifica si traes un token vÃ¡lido o una cookie.
 app.UseAuthentication();
-// UseAuthorization: "¿Tienes permiso?".Una vez que sabemos quién eres, este middleware revisa si tu rol te permite entrar a ese endpoint.
+// UseAuthorization: "Â¿Tienes permiso?".Una vez que sabemos quiÃ©n eres, este middleware revisa si tu rol te permite entrar a ese endpoint.
 app.UseAuthorization();
-// MapControllers: Es el final del camino. Ejecuta la lógica de tu controlador.
+// MapControllers: Es el final del camino. Ejecuta la lÃ³gica de tu controlador.
 app.MapControllers();
-// MapGraphQL: Habilita el endpoint único para GraphQL (/graphql)
+// MapGraphQL: Habilita el endpoint Ãºnico para GraphQL (/graphql)
 app.MapGraphQL("/graphql");
 
 // --- 9. MIGRACIONES Y SEED DATA ---
@@ -194,22 +194,22 @@ using (var scope = app.Services.CreateScope())
     try
     {
         // --- APLICAR MIGRACIONES PENDIENTES ---
-        // Esto iguala la estructura de MonsterASP con mi base local automáticamente
+        // Esto iguala la estructura de MonsterASP con mi base local automÃ¡ticamente
         if (context.Database.GetPendingMigrations().Any())
         {
             context.Database.Migrate();
-            Console.WriteLine("Migraciones aplicadas con éxito.");
+            Console.WriteLine("Migraciones aplicadas con Ã©xito.");
         }
 
         // --- CARGAR DATOS INICIALES ---
-        // Ejecuta el Seeding de datos maestros (Categorías, Marcas, etc.).
-        // El método es idempotente: solo insertará registros si las tablas están vacías (Esto esta configurado en DbSeeders),
-        // evitando duplicados en cada reinicio de la aplicación.
+        // Ejecuta el Seeding de datos maestros (CategorÃ­as, Marcas, etc.).
+        // El mÃ©todo es idempotente: solo insertarÃ¡ registros si las tablas estÃ¡n vacÃ­as (Esto esta configurado en DbSeeders),
+        // evitando duplicados en cada reinicio de la aplicaciÃ³n.
         await DbSeeder.SeedAll(context);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error en el proceso de inicio (Migración/Seed): {ex.Message}");
+        Console.WriteLine($"Error en el proceso de inicio (MigraciÃ³n/Seed): {ex.Message}");
     }
 }
 
