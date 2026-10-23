@@ -4,8 +4,17 @@ using ApiComponents.Application.Repositories;
 namespace ApiComponents.Application.Features.Products.Queries;
 
 // endpoint liviano para la Grilla Admin
-public record GetProductsAdminQuery(int? Page, int? Size, string? Search, int? CategoryId, int? BrandId,
-    decimal? MinPrice, decimal? MaxPrice, string? SortBy, string? Order, bool? IsActive) : IRequest<object>;
+public record GetProductsAdminQuery(
+    int? Page,
+    int? Size,
+    string? Search,
+    List<int>? CategoryIds,
+    List<int>? BrandIds,
+    decimal? MinPrice,
+    decimal? MaxPrice,
+    string? SortBy,
+    string? Order,
+    bool? IsActive) : IRequest<object>;
 
 
 public class GetProductsAdminQueryHandler : IRequestHandler<GetProductsAdminQuery, object>
@@ -21,12 +30,11 @@ public class GetProductsAdminQueryHandler : IRequestHandler<GetProductsAdminQuer
     {
         var (items, total) = await _repo.GetProductsAdminAsync(
             request.Page, request.Size, request.Search,
-            request.CategoryId, request.BrandId, request.MinPrice,
-            request.MaxPrice, request.SortBy, request.Order,
+            request.CategoryIds, request.BrandIds,
+            request.MinPrice, request.MaxPrice,
+            request.SortBy, request.Order,
             request.IsActive, cancellationToken);
 
         return new { items, totalItems = total };
     }
 }
-
-

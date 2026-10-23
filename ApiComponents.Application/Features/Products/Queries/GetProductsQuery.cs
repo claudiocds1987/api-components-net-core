@@ -6,8 +6,17 @@ using ApiComponents.Application.DTOs;
 namespace ApiComponents.Application.Features.Products.Queries;
 
 // endpoint Listado de productos para Customer 
-public record GetProductsQuery(int? Page, int? Size, string? Search, int? CategoryId, int? BrandId,
-    decimal? MinPrice, decimal? MaxPrice, string? SortBy, string? Order, bool? IsActive) : IRequest<object>;
+public record GetProductsQuery(
+    int? Page,
+    int? Size,
+    string? Search,
+    List<int>? CategoryIds,
+    List<int>? BrandIds,
+    decimal? MinPrice,
+    decimal? MaxPrice,
+    string? SortBy,
+    string? Order,
+    bool? IsActive) : IRequest<object>;
 
 
 public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
@@ -25,13 +34,12 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
     {
         var (items, total) = await _repo.GetProductsAsync(
             request.Page, request.Size, request.Search,
-            request.CategoryId, request.BrandId, request.MinPrice,
-            request.MaxPrice, request.SortBy, request.Order,
+            request.CategoryIds, request.BrandIds,
+            request.MinPrice, request.MaxPrice,
+            request.SortBy, request.Order,
             request.IsActive, cancellationToken);
 
         var dtos = _mapper.Map<List<ProductDto>>(items);
         return new { items = dtos, totalItems = total };
     }
 }
-
-

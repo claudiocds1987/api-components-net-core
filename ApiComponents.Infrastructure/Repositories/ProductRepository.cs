@@ -1,4 +1,4 @@
-using ApiComponents.Application.DTOs;
+﻿using ApiComponents.Application.DTOs;
 using ApiComponents.Application.Interfaces;
 using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
@@ -79,8 +79,8 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     int? page,
     int? size,
     string? search,
-    int? categoryId,
-    int? brandId,
+    List<int>? categoryIds,
+    List<int>? brandIds,
     decimal? minPrice,
     decimal? maxPrice,
     string? sortBy,
@@ -102,11 +102,19 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.title.Contains(search) || p.description.Contains(search));
 
-        if (categoryId.HasValue && categoryId > 0)
-            query = query.Where(p => p.categoryId == categoryId);
+        if (categoryIds != null && categoryIds.Count > 0)
+        {
+            var validCatIds = categoryIds.Where(id => id > 0).ToList();
+            if (validCatIds.Count > 0)
+                query = query.Where(p => validCatIds.Contains(p.categoryId));
+        }
 
-        if (brandId.HasValue && brandId > 0)
-            query = query.Where(p => p.brandId == brandId);
+        if (brandIds != null && brandIds.Count > 0)
+        {
+            var validBrandIds = brandIds.Where(id => id > 0).ToList();
+            if (validBrandIds.Count > 0)
+                query = query.Where(p => validBrandIds.Contains(p.brandId));
+        }
 
         if (minPrice.HasValue)
             query = query.Where(p => p.price >= minPrice);
@@ -137,8 +145,8 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     int? page,
     int? size,
     string? search,
-    int? categoryId,
-    int? brandId,
+    List<int>? categoryIds,
+    List<int>? brandIds,
     decimal? minPrice,
     decimal? maxPrice,
     string? sortBy,
@@ -157,13 +165,21 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.title.Contains(search) || p.description.Contains(search));
 
-        // 2. Filtrado por Categoría
-        if (categoryId.HasValue && categoryId > 0)
-            query = query.Where(p => p.categoryId == categoryId);
+        // 2. Filtro combinado de Categorías
+        if (categoryIds != null && categoryIds.Count > 0)
+        {
+            var validCatIds = categoryIds.Where(id => id > 0).ToList();
+            if (validCatIds.Count > 0)
+                query = query.Where(p => validCatIds.Contains(p.categoryId));
+        }
 
-        // 3. Filtrado por Marca
-        if (brandId.HasValue && brandId > 0)
-            query = query.Where(p => p.brandId == brandId);
+        // 3. Filtro combinado de Marcas
+        if (brandIds != null && brandIds.Count > 0)
+        {
+            var validBrandIds = brandIds.Where(id => id > 0).ToList();
+            if (validBrandIds.Count > 0)
+                query = query.Where(p => validBrandIds.Contains(p.brandId));
+        }
 
         // 4. Filtrado por Rango de Precio
         if (minPrice.HasValue)
