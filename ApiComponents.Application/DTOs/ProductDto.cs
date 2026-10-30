@@ -9,7 +9,7 @@ public class ProductDto
     public double discountPercentage { get; set; }
     public int stock { get; set; }
     public double rating { get; set; }
-    public string brand { get; set; } = string.Empty;
+    public int brandId { get; set; }
     public string thumbnail { get; set; } = string.Empty;
     public int categoryId { get; set; }
     public List<ProductTagDto> tags { get; set; } = [];
