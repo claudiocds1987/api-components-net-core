@@ -55,7 +55,7 @@ public class QueryCatalogQueryHandler(
             rating = (double)p.rating,
             stock = p.stock,
             categoryId = p.categoryId,
-            brand = p.brand?.name ?? "N/A",
+            brandId = p.brandId,
             thumbnail = p.thumbnail,
             tags = p.tags != null ? p.tags.Select(t => new ProductTagDto { id = t.id ?? 0, tagName = t.tagName }).ToList() : []
         }).ToList();
@@ -396,7 +396,7 @@ public class QueryCatalogQueryHandler(
         foreach (var p in products)
         {
             var originalHay = ((p.title ?? string.Empty) + " " +
-                               (p.brand ?? string.Empty) + " " +
+
                                string.Join(" ", p.tags != null ? p.tags.Select(t => t.tagName) : Enumerable.Empty<string>())).ToLowerInvariant();
 
             var normalizedHay = originalHay.Replace("-", " ");
