@@ -14,6 +14,7 @@ public record GetProductsQuery(
     List<int>? BrandIds,
     decimal? MinPrice,
     decimal? MaxPrice,
+    decimal? MinRating,
     string? SortBy,
     string? Order,
     bool? IsActive) : IRequest<object>;
@@ -37,7 +38,7 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
             request.CategoryIds, request.BrandIds,
             request.MinPrice, request.MaxPrice,
             request.SortBy, request.Order,
-            request.IsActive, cancellationToken);
+            request.IsActive, request.MinRating, cancellationToken);
 
         var dtos = _mapper.Map<List<ProductDto>>(items);
         return new { items = dtos, totalItems = total };

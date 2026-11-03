@@ -86,6 +86,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     string? sortBy,
     string? order,
     bool? isActive = true,
+    decimal? minRating = null,
     CancellationToken cancellationToken = default)
     {
         var query = db.Products
@@ -121,6 +122,9 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
 
         if (maxPrice.HasValue)
             query = query.Where(p => p.price <= maxPrice);
+
+        if (minRating.HasValue)
+            query = query.Where(p => p.rating >= minRating.Value);
 
         int totalCount = await query.CountAsync(cancellationToken);
 
@@ -698,5 +702,29 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             })
             .OrderBy(x => x.BrandId)
             .ToListAsync(cancellationToken);
+    }
+
+    // ==============================================================================================================
+    // MÉTODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR RATING 1-5(USADO EN COMPONENTE product-filter DE ANGULAR)
+    // ==============================================================================================================
+    public async Task<List<TotalProductsByRatingDto>> GetTotalProductsByRatingAsync(
+        bool? isActive = true,
+        CancellationToken cancellationToken = default)
+    {
+        var query = db.Products.AsNoTracking().AsQueryable();
+
+        if (isActive.HasValue)
+            query = query.Where(p => p.isActive == isActive.Value);
+
+        var ratings = await query.Select(p => p.rating).ToListAsync(cancellationToken);
+
+        return Enumerable.Range(1, 5)
+            .Reverse()
+            .Select(stars => new TotalProductsByRatingDto
+            {
+                Rating = stars,
+                TotalProducts = ratings.Count(r => r >= stars)
+            })
+            .ToList();
     }
 }
