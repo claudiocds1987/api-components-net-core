@@ -703,4 +703,28 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             .OrderBy(x => x.BrandId)
             .ToListAsync(cancellationToken);
     }
+
+    // ==============================================================================================================
+    // MÉTODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR RATING 1-5(USADO EN COMPONENTE product-filter DE ANGULAR)
+    // ==============================================================================================================
+    public async Task<List<TotalProductsByRatingDto>> GetTotalProductsByRatingAsync(
+        bool? isActive = true,
+        CancellationToken cancellationToken = default)
+    {
+        var query = db.Products.AsNoTracking().AsQueryable();
+
+        if (isActive.HasValue)
+            query = query.Where(p => p.isActive == isActive.Value);
+
+        var ratings = await query.Select(p => p.rating).ToListAsync(cancellationToken);
+
+        return Enumerable.Range(1, 5)
+            .Reverse()
+            .Select(stars => new TotalProductsByRatingDto
+            {
+                Rating = stars,
+                TotalProducts = ratings.Count(r => r >= stars)
+            })
+            .ToList();
+    }
 }

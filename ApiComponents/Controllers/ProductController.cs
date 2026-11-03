@@ -1,10 +1,10 @@
 using ApiComponents.Application.DTOs;
+using ApiComponents.Application.Features.ProductReviews.Queries;
+using ApiComponents.Application.Features.Products.Commands;
+using ApiComponents.Application.Features.Products.Queries;
 using ApiComponents.Domain.Models;
 using MediatR;
-
 using Microsoft.AspNetCore.Mvc;
-using ApiComponents.Application.Features.Products.Queries;
-using ApiComponents.Application.Features.Products.Commands;
 
 namespace ApiComponents.Controllers;
 
@@ -85,5 +85,14 @@ public class ProductController(ISender sender) : ControllerBase
     {
         var counts = await sender.Send(new GetTotalProductsByBrandQuery(isActive));
         return Ok(counts);
+    }
+
+    // Endpoint para obtener la cantidad de productos por rating 1-5, opcionalmente filtrado por estado activo
+    // Usado en componente products-filter de Angular para mostrar la cantidad de productos por rating en el filtro
+    [HttpGet("total-by-rating")]
+    public async Task<ActionResult<IEnumerable<TotalProductsByRatingDto>>> GetTotalProductsByRating(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetTotalProductsByRatingQuery(), cancellationToken);
+        return Ok(result);
     }
 }

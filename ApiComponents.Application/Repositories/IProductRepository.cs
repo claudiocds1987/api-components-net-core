@@ -34,6 +34,7 @@ public interface IProductRepository
         string? order = "asc",
         bool? isActive = null, // El admin suele querer ver todos por defecto activos e inactivos
         CancellationToken cancellationToken = default);
+
     Task CreateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default);
     Task<ProductRequestDTo> UpdateProduct(ProductRequestDTo productDto, string scheme, string host, CancellationToken cancellationToken = default);
     Task<ProductRequestDTo> UpdateProductStatus(int id, bool isActive, CancellationToken cancellationToken = default);
@@ -41,4 +42,6 @@ public interface IProductRepository
     Task RestoreProductStock(int id, int quantityToRestore, CancellationToken cancellationToken = default);
     Task<IEnumerable<TotalProductsByCategoryDto>> GetTotalProductsByCategoryAsync(bool? isActive = true, CancellationToken cancellationToken = default);
     Task<IEnumerable<TotalProductsByBrandDto>> GetTotalProductsByBrandAsync(bool? isActive = true, CancellationToken cancellationToken = default);
+
+    Task<List<TotalProductsByRatingDto>> GetTotalProductsByRatingAsync(bool? isActive = true, CancellationToken cancellationToken = default);
 }
