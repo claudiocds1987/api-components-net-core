@@ -20,6 +20,7 @@ public interface IProductRepository
         string? sortBy = "title",
         string? order = "asc",
         bool? isActive = true,
+        decimal? minRating = null,
         CancellationToken cancellationToken = default);
     Task<(List<ProductAdminDto> Items, int TotalCount)> GetProductsAdminAsync(
         int? page = null,

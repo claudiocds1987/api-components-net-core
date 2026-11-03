@@ -86,6 +86,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     string? sortBy,
     string? order,
     bool? isActive = true,
+    decimal? minRating = null,
     CancellationToken cancellationToken = default)
     {
         var query = db.Products
@@ -121,6 +122,9 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
 
         if (maxPrice.HasValue)
             query = query.Where(p => p.price <= maxPrice);
+
+        if (minRating.HasValue)
+            query = query.Where(p => p.rating >= minRating.Value);
 
         int totalCount = await query.CountAsync(cancellationToken);
 
