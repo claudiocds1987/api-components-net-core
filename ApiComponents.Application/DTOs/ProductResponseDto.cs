@@ -9,7 +9,11 @@ public class ProductResponseDto
     public string description { get; set; } = string.Empty;
     public decimal price { get; set; }
     public decimal discountPercentage { get; set; }
+
+    // Estadísticas precalculadas — se leen directamente desde la tabla Products.
     public decimal rating { get; set; }
+    public int reviewCount { get; set; }
+
     public int stock { get; set; }
     public string sku { get; set; } = string.Empty;
     public decimal weight { get; set; }
@@ -27,10 +31,12 @@ public class ProductResponseDto
     public int brandId { get; set; }
     public bool isActive { get; set; }
 
-    // Listas para las relaciones
+    // Listas de relaciones
     public List<ProductImage> images { get; set; } = [];
     public List<ProductTag> tags { get; set; } = [];
 
-    public List<ProductReview> reviews { get; set; } = [];
+    // Seguridad: se usa ProductReviewDto para no exponer UserEmail en endpoints públicos.
+    public List<ProductReviewDto> reviews { get; set; } = [];
+
     public List<ExtraAttributeDto> extraAttributes { get; set; } = [];
 }

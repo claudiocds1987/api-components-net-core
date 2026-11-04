@@ -1,4 +1,4 @@
-﻿using ApiComponents.Application.DTOs;
+using ApiComponents.Application.DTOs;
 using ApiComponents.Application.Interfaces;
 using ApiComponents.Application.Repositories;
 using ApiComponents.Domain.Models;
@@ -33,7 +33,9 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 description = p.description,
                 price = p.price,
                 discountPercentage = p.discountPercentage,
+                // Estad�sticas precalculadas � se leen directamente desde Products, sin AVG/COUNT din�mico.
                 rating = p.rating,
+                reviewCount = p.reviewCount,
                 stock = p.stock,
                 sku = p.sku,
                 weight = p.weight,
@@ -56,7 +58,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     value = av.value,
                     dataType = av.attributeDefinition.dataType
                 }).ToList(),
-                // Mapeo de Imágenes adicionales
+                // Mapeo de Im�genes adicionales
                 images = p.images.Select(img => new ProductImage
                 {
                     id = img.id,
@@ -70,7 +72,18 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     id = tag.id,
                     tagName = tag.tagName,
                     productId = tag.productId
-                }).ToList()
+                }).ToList(),
+                // Seguridad: se proyecta a ProductReviewDto (sin UserEmail).
+                reviews = p.reviews
+                    .OrderByDescending(r => r.date)
+                    .Select(r => new ProductReviewDto
+                    {
+                        id       = r.id,
+                        rating   = r.rating,
+                        comment  = r.comment,
+                        userName = r.userName,
+                        date     = r.date
+                    }).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -161,7 +174,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         var query = db.Products.AsQueryable();
 
         // 0. Filtrado por Estado (Soft Delete)
-        // Si isActive tiene valor (true/false), filtramos por él. Si es null, trae todos.
+        // Si isActive tiene valor (true/false), filtramos por �l. Si es null, trae todos.
         if (isActive.HasValue)
             query = query.Where(p => p.isActive == isActive.Value);
 
@@ -169,7 +182,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.title.Contains(search) || p.description.Contains(search));
 
-        // 2. Filtro combinado de Categorías
+        // 2. Filtro combinado de Categor�as
         if (categoryIds != null && categoryIds.Count > 0)
         {
             var validCatIds = categoryIds.Where(id => id > 0).ToList();
@@ -192,10 +205,10 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         if (maxPrice.HasValue)
             query = query.Where(p => p.price <= maxPrice);
 
-        // 5. Conteo Total (Importante hacerlo antes de la paginación)
+        // 5. Conteo Total (Importante hacerlo antes de la paginaci�n)
         int totalCount = await query.CountAsync(cancellationToken);
 
-        // 6. Ordenamiento Dinámico
+        // 6. Ordenamiento Din�mico
         var validSortFields = new[] { "price", "title", "id", "discountPercentage", "sku", "stock", "isActive" };
 
         if (!string.IsNullOrWhiteSpace(sortBy) && validSortFields.Contains(sortBy, StringComparer.OrdinalIgnoreCase))
@@ -214,7 +227,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             query = query.OrderByDescending(p => p.id);
         }
 
-        // 7. Paginación y ejecución de la consulta
+        // 7. Paginaci�n y ejecuci�n de la consulta
         var items = await query
             .Skip(((page ?? 1) - 1) * (size ?? 25))
             .Take(size ?? 25)
@@ -229,9 +242,11 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 categoryId = p.categoryId,
                 brandId = p.brandId,
                 isActive = p.isActive,
-                imageUrl = p.thumbnail
+                imageUrl = p.thumbnail,
+                rating = p.rating,
+                reviewCount = p.reviewCount
 
-                // Nota: Asegúrate de incluir aquí categoryId y brandId si los necesitas en el mapeo del Excel
+                // Nota: Aseg�rate de incluir aqu� categoryId y brandId si los necesitas en el mapeo del Excel
             })
             .ToListAsync();
 
@@ -242,7 +257,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     {
         // FileService ahora se inyecta por DI
 
-        // Creamos la estrategia de ejecución para permitir transacciones con políticas de reintento
+        // Creamos la estrategia de ejecuci�n para permitir transacciones con pol�ticas de reintento
         var strategy = db.Database.CreateExecutionStrategy();
 
         await strategy.ExecuteAsync(async () =>
@@ -251,7 +266,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             try
             {
                 // 1. MAPEO: Transferimos los datos del DTO (que viene del cliente) a la Entidad 'Product'.
-                // En este punto, 'product.id' es NULL porque el objeto aún no existe en la base de datos.
+                // En este punto, 'product.id' es NULL porque el objeto a�n no existe en la base de datos.
                 var product = new Product
                 {
                     title = productDto.title,
@@ -290,35 +305,35 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     }
                 }
 
-                // 3. GENERACIÓN DE ID: Al ejecutar SaveChanges, SQL Server inserta el registro y genera el ID IDENTITY.
-                // Entity Framework recupera ese valor automáticamente y lo asigna a la propiedad 'product.id' en memoria.
+                // 3. GENERACI�N DE ID: Al ejecutar SaveChanges, SQL Server inserta el registro y genera el ID IDENTITY.
+                // Entity Framework recupera ese valor autom�ticamente y lo asigna a la propiedad 'product.id' en memoria.
                 await db.Products.AddAsync(product, cancellationToken);
                 await db.SaveChangesAsync(cancellationToken);
 
-                // 4. RELACIÓN (IMÁGENES): Como 'product.id' ya tiene el valor real devuelto por SQL,
-                // lo usamos para establecer la clave foránea (FK) en cada registro de la galería.
+                // 4. RELACI�N (IM�GENES): Como 'product.id' ya tiene el valor real devuelto por SQL,
+                // lo usamos para establecer la clave for�nea (FK) en cada registro de la galer�a.
                 if (productDto.images != null && productDto.images.Any())
                 {
                     foreach (var imgDto in productDto.images)
                     {
                         var newImg = new ProductImage
                         {
-                            productId = (int)product.id!, // Aquí leemos el IDdel producto que SQL acaba de generar
+                            productId = (int)product.id!, // Aqu� leemos el IDdel producto que SQL acaba de generar
                             imageUrl = await _file_service_ProcessImage_async_wrapper(imgDto.imageUrl, scheme, host, cancellationToken)
                         };
                         await db.ProductImages.AddAsync(newImg);
                     }
                 }
 
-                // 5. RELACIÓN (TAGS): Repetimos el proceso usando el mismo ID del producto padre.
-                // SQL Server necesita este valor para saber que estos tags pertenecen a este producto específico.
+                // 5. RELACI�N (TAGS): Repetimos el proceso usando el mismo ID del producto padre.
+                // SQL Server necesita este valor para saber que estos tags pertenecen a este producto espec�fico.
                 if (productDto.tags != null && productDto.tags.Any())
                 {
                     foreach (var tagDto in productDto.tags)
                     {
                         var newTag = new ProductTag
                         {
-                            productId = (int)product.id!, // El ID ya está disponible tras el SaveChanges del paso 3
+                            productId = (int)product.id!, // El ID ya est� disponible tras el SaveChanges del paso 3
                             tagName = tagDto.tagName
                         };
                         await db.ProductTags.AddAsync(newTag);
@@ -343,7 +358,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     }
                 }
 
-                // Guardamos los hijos (Imágenes y Tags) y confirmamos la transacción de forma atómica.
+                // Guardamos los hijos (Im�genes y Tags) y confirmamos la transacci�n de forma at�mica.
                 await db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync();
             }
@@ -357,7 +372,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
 
                 string reportMessage = $"[REPORTE DE ERROR - {timestamp}]\n" +
                                        $"Motivo: Falla en la persistencia del producto.\n" +
-                                       $"Detalle Técnico: {technicalDetail}";
+                                       $"Detalle T�cnico: {technicalDetail}";
 
                 throw new Exception(reportMessage, ex);
             }
@@ -385,7 +400,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 if (existingProduct == null)
                     throw new Exception($"Producto con ID {productDto.id} no encontrado.");
 
-                // [Mapeo de propiedades primitivas idéntico a tu código]
+                // [Mapeo de propiedades primitivas id�ntico a tu c�digo]
                 existingProduct.title = productDto.title;
                 existingProduct.description = productDto.description;
                 existingProduct.price = productDto.price;
@@ -417,7 +432,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     existingProduct.thumbnail = productDto.thumbnail;
                 }
 
-                // Procesamiento de imágenes secundarias
+                // Procesamiento de im�genes secundarias
                 db.ProductImages.RemoveRange(existingProduct.images);
                 existingProduct.images.Clear();
 
@@ -435,7 +450,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                     }
                 }
 
-                // Procesamiento de Tags (Corregido el typo de tu código original)
+                // Procesamiento de Tags (Corregido el typo de tu c�digo original)
                 db.ProductTags.RemoveRange(existingProduct.tags);
                 existingProduct.tags.Clear();
 
@@ -540,7 +555,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                         productId = t.productId
                     }).ToList(),
 
-                    // Los extra attributes se devuelven tal como vinieron mapeados en la petición
+                    // Los extra attributes se devuelven tal como vinieron mapeados en la petici�n
                     extraAttributes = productDto.extraAttributes ?? []
                 };
             }
@@ -564,14 +579,14 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
             using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                // Buscamos SOLO el producto raíz (sin relaciones, ahorrando memoria y CPU)
+                // Buscamos SOLO el producto ra�z (sin relaciones, ahorrando memoria y CPU)
                 var existingProduct = await db.Products
                     .FirstOrDefaultAsync(p => p.id == id, cancellationToken);
 
                 if (existingProduct == null)
                     throw new Exception($"Producto con ID {id} no encontrado.");
 
-                // Modificamos únicamente la propiedad deseada
+                // Modificamos �nicamente la propiedad deseada
                 existingProduct.isActive = isActive;
 
                 db.Entry(existingProduct).State = EntityState.Modified;
@@ -579,7 +594,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
                 await db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                // Devolvemos el DTO con el estado mínimo requerido o el objeto completo mapeado
+                // Devolvemos el DTO con el estado m�nimo requerido o el objeto completo mapeado
                 resultDto = new ProductRequestDTo
                 {
                     id = existingProduct.id,
@@ -597,7 +612,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         return resultDto;
     }
 
-    // Método para actualizar el stock de un producto, (Necesario para actualizar stock del producto/os cuando finaliza la orden de compra).
+    // M�todo para actualizar el stock de un producto, (Necesario para actualizar stock del producto/os cuando finaliza la orden de compra).
     public async Task UpdateProductStock(int id, int quantityToReduce, CancellationToken cancellationToken = default)
     {
         var product = await db.Products.FindAsync(new object[] { id }, cancellationToken);
@@ -610,7 +625,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
 
         product.stock -= quantityToReduce;
 
-        // Opcional: Si el stock llega a 0, podrías pasarlo a inactivo o "Out of Stock"
+        // Opcional: Si el stock llega a 0, podr�as pasarlo a inactivo o "Out of Stock"
         if (product.stock == 0)
         {
             product.availabilityStatus = "Out of Stock";
@@ -629,7 +644,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         {
             product.stock += quantityToRestore;
 
-            // Si el estado estaba agotado, lo volvemos a poner disponible automáticamente
+            // Si el estado estaba agotado, lo volvemos a poner disponible autom�ticamente
             if (product.availabilityStatus == "Out of Stock" && product.stock > 0)
             {
                 product.availabilityStatus = "In Stock";
@@ -640,8 +655,8 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         }
     }
 
-    // Aplica ordenamiento dinámico a la consulta de productos,
-    // según el nombre de la propiedad (sortBy) y la dirección (asc/desc).
+    // Aplica ordenamiento din�mico a la consulta de productos,
+    // seg�n el nombre de la propiedad (sortBy) y la direcci�n (asc/desc).
     private IOrderedQueryable<Product> ApplyOrdering(IQueryable<Product> query, string sortBy, string order)
     {
         var parameter = Expression.Parameter(typeof(Product), "p");
@@ -663,7 +678,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     }
 
     // ==============================================================================================================
-    // MÉTODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR CATEGORÍA (USADO EN COMPONENTE product-filter DE ANGULAR)
+    // M�TODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR CATEGOR�A (USADO EN COMPONENTE product-filter DE ANGULAR)
     // ==============================================================================================================
     public async Task<IEnumerable<TotalProductsByCategoryDto>> GetTotalProductsByCategoryAsync(bool? isActive = true, CancellationToken cancellationToken = default)
     {
@@ -684,7 +699,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     }
 
     // ==============================================================================================================
-    // MÉTODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR MARCA (USADO EN COMPONENTE product-filter DE ANGULAR)
+    // M�TODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR MARCA (USADO EN COMPONENTE product-filter DE ANGULAR)
     // ==============================================================================================================
     public async Task<IEnumerable<TotalProductsByBrandDto>> GetTotalProductsByBrandAsync(bool? isActive = true, CancellationToken cancellationToken = default)
     {
@@ -705,7 +720,7 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
     }
 
     // ==============================================================================================================
-    // MÉTODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR RATING 1-5(USADO EN COMPONENTE product-filter DE ANGULAR)
+    // M�TODO PARA OBTENER LA CANTIDAD DE PRODUCTOS POR RATING 1-5(USADO EN COMPONENTE product-filter DE ANGULAR)
     // ==============================================================================================================
     public async Task<List<TotalProductsByRatingDto>> GetTotalProductsByRatingAsync(
         bool? isActive = true,
