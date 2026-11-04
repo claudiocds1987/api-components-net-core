@@ -13,4 +13,8 @@ public class ProductAdminDto
     public int brandId { get; set; }
     public bool isActive { get; set; }
     public string imageUrl { get; set; } = string.Empty;
+
+    // Estadísticas precalculadas
+    public decimal rating { get; set; }
+    public int reviewCount { get; set; }
 }

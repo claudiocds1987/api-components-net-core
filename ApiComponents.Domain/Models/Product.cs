@@ -20,7 +20,15 @@ public class Product
 
     public decimal discountPercentage { get; set; }
 
+    // Estadísticas precalculadas — se actualizan automáticamente al crear/eliminar reviews.
+    // NUNCA calcular AVG()/COUNT() en tiempo de consulta; leer siempre estos campos persistidos.
     public decimal rating { get; set; }
+
+    /// <summary>
+    /// Cantidad total de reviews asociadas a este producto.
+    /// Se mantiene sincronizado con Rating mediante UpdateStatistics().
+    /// </summary>
+    public int reviewCount { get; set; }
 
     [Required(ErrorMessage = "El stock es obligatorio.")]
     [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo.")]
@@ -63,10 +71,10 @@ public class Product
     //public ICollection<object> extraAttributeValues { get; set; } = new List<object>();
     public ICollection<ProductExtraAttributeValue> extraAttributeValues { get; set; } = new List<ProductExtraAttributeValue>();
 
-
     public bool isActive { get; set; } = true;
 
-    // Reglas de negocio (DDD)
+    // ─── Reglas de negocio (DDD) ───────────────────────────────────────────────
+
     public void ValidateForCreate()
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -95,7 +103,6 @@ public class Product
     public void AddImage(ProductImage image)
     {
         if (image == null) return;
-        // Ya no necesitas inicializar con List<object> porque la propiedad es ICollection<ProductImage>
         images ??= new List<ProductImage>();
         images.Add(image);
     }
@@ -103,8 +110,20 @@ public class Product
     public void AddTag(ProductTag tag)
     {
         if (tag == null) return;
-        // Ya no necesitas inicializar con List<object>
         tags ??= new List<ProductTag>();
         tags.Add(tag);
+    }
+
+    /// <summary>
+    /// Actualiza las estadísticas precalculadas del producto.
+    /// Debe llamarse desde el repositorio de reviews dentro de la misma transacción
+    /// en la que se crea o elimina una review.
+    /// </summary>
+    /// <param name="averageRating">Promedio calculado sobre todas las reviews del producto (0 si no hay reviews).</param>
+    /// <param name="totalReviews">Cantidad total de reviews del producto.</param>
+    public void UpdateStatistics(decimal averageRating, int totalReviews)
+    {
+        rating = averageRating;
+        reviewCount = totalReviews;
     }
 }

@@ -9,6 +9,8 @@ public class DeleteReviewCommandHandler(IProductReviewRepository repo) : IReques
 {
     public async Task<Unit> Handle(DeleteReviewCommand request, CancellationToken cancellationToken)
     {
+        // DeleteReview elimina la review y recalcula rating/reviewCount del producto
+        // en una única transacción atómica dentro del repositorio.
         await repo.DeleteReview(request.Id);
         return Unit.Value;
     }

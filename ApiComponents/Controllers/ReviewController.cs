@@ -1,3 +1,4 @@
+using ApiComponents.Application.DTOs;
 using ApiComponents.Application.Features.ProductReviews.Commands;
 using ApiComponents.Application.Features.ProductReviews.Queries;
 using ApiComponents.Domain.Models;
@@ -28,11 +29,29 @@ public class ReviewController(ISender sender) : ControllerBase
         }
     }
 
+    // Retorna ProductReviewDto para no exponer UserEmail en endpoints públicos.
     [HttpGet("product/{productId}")]
-    public async Task<ActionResult<List<ProductReview>>> GetProductReviews(int productId)
+    public async Task<ActionResult<List<ProductReviewDto>>> GetProductReviews(int productId)
     {
         var reviews = await sender.Send(new GetReviewsByProductIdQuery(productId));
         return Ok(reviews);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteReview(int id)
+    {
+        try
+        {
+            await sender.Send(new DeleteReviewCommand(id));
+            return Ok(new { message = "Review eliminada con éxito." });
+        }
+        catch (System.Collections.Generic.KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Error al eliminar la review.");
+        }
+    }
 }
