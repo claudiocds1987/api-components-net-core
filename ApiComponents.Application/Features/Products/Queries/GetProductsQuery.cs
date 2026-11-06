@@ -17,7 +17,7 @@ public record GetProductsQuery(
     decimal? MinRating,
     string? SortBy,
     string? Order,
-    bool? IsActive) : IRequest<object>;
+    bool? IsActive = true) : IRequest<object>;
 
 
 public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
@@ -39,12 +39,15 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
             ? (sortBy.Equals("rating", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc")
             : request.Order;
 
+        // Por defecto para clientes: siempre mostrar solo productos activos (soft delete)
+        bool isActive = request.IsActive ?? true;
+
         var (items, total) = await _repo.GetProductsAsync(
             request.Page, request.Size, request.Search,
             request.CategoryIds, request.BrandIds,
             request.MinPrice, request.MaxPrice,
             sortBy, order,
-            request.IsActive, request.MinRating, cancellationToken);
+            isActive, request.MinRating, cancellationToken);
 
         var dtos = _mapper.Map<List<ProductDto>>(items);
         return new { items = dtos, totalItems = total };
