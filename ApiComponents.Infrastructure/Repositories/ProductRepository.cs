@@ -146,7 +146,8 @@ public class ProductRepository(AppDbContext db, IFileService fileService) : IPro
         {
             "price" => order?.ToLower() == "asc" ? query.OrderBy(p => p.price) : query.OrderByDescending(p => p.price),
             "title" => order?.ToLower() == "desc" ? query.OrderByDescending(p => p.title) : query.OrderBy(p => p.title),
-            _ => order?.ToLower() == "asc" ? query.OrderBy(p => p.rating) : query.OrderByDescending(p => p.rating)
+            "rating" => order?.ToLower() == "asc" ? query.OrderBy(p => p.rating).ThenByDescending(p => p.id) : query.OrderByDescending(p => p.rating).ThenByDescending(p => p.id),
+            _ => order?.ToLower() == "asc" ? query.OrderBy(p => p.rating).ThenByDescending(p => p.id) : query.OrderByDescending(p => p.rating).ThenByDescending(p => p.id)
         };
 
         var items = await query

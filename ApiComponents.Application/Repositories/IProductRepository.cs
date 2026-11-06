@@ -17,8 +17,8 @@ public interface IProductRepository
         List<int>? brandIds = null,
         decimal? minPrice = null,
         decimal? maxPrice = null,
-        string? sortBy = "title",
-        string? order = "asc",
+        string? sortBy = "rating",
+        string? order = "desc",
         bool? isActive = true,
         decimal? minRating = null,
         CancellationToken cancellationToken = default);

@@ -33,11 +33,17 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, object>
 
     public async Task<object> Handle(GetProductsQuery request, CancellationToken cancellationToken)
     {
+        // Por defecto en e-commerce: ordenar por rating de mayor a menor (mejores valorados primero)
+        string sortBy = string.IsNullOrWhiteSpace(request.SortBy) ? "rating" : request.SortBy;
+        string order = string.IsNullOrWhiteSpace(request.Order)
+            ? (sortBy.Equals("rating", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc")
+            : request.Order;
+
         var (items, total) = await _repo.GetProductsAsync(
             request.Page, request.Size, request.Search,
             request.CategoryIds, request.BrandIds,
             request.MinPrice, request.MaxPrice,
-            request.SortBy, request.Order,
+            sortBy, order,
             request.IsActive, request.MinRating, cancellationToken);
 
         var dtos = _mapper.Map<List<ProductDto>>(items);
