@@ -33,6 +33,51 @@ namespace ApiComponents.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Obtiene los productos comprados y aprobados de un usuario registrado ("Mis Compras").
+        /// </summary>
+        /// <param name="userId">Identificador obligatorio del usuario comprador.</param>
+        /// <param name="dateFrom">Fecha mínima de compra (opcional).</param>
+        /// <param name="dateTo">Fecha máxima de compra (opcional).</param>
+        /// <param name="categoryId">Filtro opcional por categoría del producto.</param>
+        /// <param name="search">Filtro opcional por título del producto.</param>
+        [HttpGet("my-purchases")]
+        public async Task<IActionResult> GetMyPurchases(
+            [FromQuery] int? userId,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            [FromQuery] int? categoryId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _sender.Send(
+                new GetMyPurchasesQuery(userId, dateFrom, dateTo, categoryId, search),
+                cancellationToken);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene el listado paginado de todos los productos comprados (usuarios registrados e invitados) para el panel de Administrador ("Compras").
+        /// </summary>
+        [HttpGet("admin/purchases")]
+        public async Task<IActionResult> GetAdminPurchases(
+            [FromQuery] int page = 1,
+            [FromQuery] int size = 25,
+            [FromQuery] int? userId = null,
+            [FromQuery] string? email = null,
+            [FromQuery] string? customerName = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? status = null,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _sender.Send(
+                new GetAdminPurchasedItemsQuery(page, size, userId, email, customerName, dateFrom, dateTo, search, status),
+                cancellationToken);
+            return Ok(result);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(int id, CancellationToken cancellationToken)
         {

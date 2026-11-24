@@ -28,6 +28,26 @@ namespace ApiComponents.Application.Repositories
 
         Task<List<Order>> GetAllOrdersAsync(CancellationToken cancellationToken = default);
 
+        Task<List<OrderDetail>> GetUserApprovedPurchasesAsync(
+            int userId,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            int? categoryId,
+            string? search,
+            CancellationToken cancellationToken = default);
+
+        Task<(List<OrderDetail> Items, int TotalCount)> GetAdminPurchasedItemsAsync(
+            int pageNumber,
+            int pageSize,
+            int? userId,
+            string? email,
+            string? customerName,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            string? search,
+            string? status,
+            CancellationToken cancellationToken = default);
+
         Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken = default);
 
         Task SaveChangesAsync(CancellationToken cancellationToken = default);
