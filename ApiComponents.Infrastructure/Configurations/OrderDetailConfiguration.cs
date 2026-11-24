@@ -14,6 +14,12 @@ namespace ApiComponents.Infrastructure.Configurations
 
             builder.Property(d => d.quantity).IsRequired();
             builder.Property(d => d.price).HasColumnType("decimal(18,2)").IsRequired();
+
+            // Relación N:1 con Product para permitir consultas cruzadas de productos comprados
+            builder.HasOne(d => d.product)
+                   .WithMany()
+                   .HasForeignKey(d => d.productId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

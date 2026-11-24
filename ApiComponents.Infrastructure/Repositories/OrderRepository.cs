@@ -144,5 +144,118 @@ namespace ApiComponents.Infrastructure.Repositories
                 .Include(o => o.orderDetails)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<OrderDetail>> GetUserApprovedPurchasesAsync(
+            int userId,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            int? categoryId,
+            string? search,
+            CancellationToken cancellationToken = default)
+        {
+            var query = BuildPurchasedItemsBaseQuery()
+                .Where(d => d.order.userId == userId && d.order.status == "Approved");
+
+            query = ApplyCommonPurchaseFilters(query, dateFrom, dateTo, search);
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(d => d.product != null && d.product.categoryId == categoryId.Value);
+            }
+
+            return await query
+                .OrderByDescending(d => d.order.createdAt)
+                .ThenByDescending(d => d.id)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<(List<OrderDetail> Items, int TotalCount)> GetAdminPurchasedItemsAsync(
+            int pageNumber,
+            int pageSize,
+            int? userId,
+            string? email,
+            string? customerName,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            string? search,
+            string? status,
+            CancellationToken cancellationToken = default)
+        {
+            var query = BuildPurchasedItemsBaseQuery();
+
+            if (userId.HasValue)
+            {
+                query = query.Where(d => d.order.userId == userId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var trimmedEmail = email.Trim();
+                query = query.Where(d => d.order.customerEmail.Contains(trimmedEmail));
+            }
+
+            if (!string.IsNullOrWhiteSpace(customerName))
+            {
+                var trimmedName = customerName.Trim();
+                query = query.Where(d => d.order.customerName.Contains(trimmedName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var trimmedStatus = status.Trim();
+                query = query.Where(d => d.order.status == trimmedStatus);
+            }
+
+            query = ApplyCommonPurchaseFilters(query, dateFrom, dateTo, search);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderByDescending(d => d.order.createdAt)
+                .ThenByDescending(d => d.id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return (items, totalCount);
+        }
+
+        private IQueryable<OrderDetail> BuildPurchasedItemsBaseQuery()
+        {
+            return _context.OrderDetails
+                .AsNoTracking()
+                .Include(d => d.order)
+                .Include(d => d.product!)
+                    .ThenInclude(p => p.category)
+                .Include(d => d.product!)
+                    .ThenInclude(p => p.images)
+                .AsSplitQuery();
+        }
+
+        private static IQueryable<OrderDetail> ApplyCommonPurchaseFilters(
+            IQueryable<OrderDetail> query,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            string? search)
+        {
+            if (dateFrom.HasValue)
+            {
+                query = query.Where(d => d.order.createdAt >= dateFrom.Value);
+            }
+
+            if (dateTo.HasValue)
+            {
+                var adjustedDateTo = dateTo.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(d => d.order.createdAt <= adjustedDateTo);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var trimmedSearch = search.Trim();
+                query = query.Where(d => d.product != null && d.product.title.Contains(trimmedSearch));
+            }
+
+            return query;
+        }
     }
 }

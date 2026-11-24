@@ -10,7 +10,6 @@
 
         // Propiedades de navegación de EF Core
         public Order order { get; set; } = null!;
-        // Si tenés la entidad Product mapeada:
-        // public Product Product { get; set; } = null!;
+        public Product? product { get; set; }
     }
 }
